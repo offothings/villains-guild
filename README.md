@@ -20,13 +20,16 @@ files. Built to run on GitHub Pages.
   ```
   "date","event","field","ingame_name","points"
   ```
-- `data/roster.csv` — roster **snapshots**: each row says a member was on
-  the roster as of `date`. Add a new snapshot (a batch of rows sharing a new
-  date) whenever the roster changes; the site uses the most recent snapshot
-  on or before whichever date you're viewing. You don't need to repeat a
-  snapshot if the roster hasn't changed — the site should be seeded with realistic
-  starter data now; replace both CSVs with your real data whenever you're
-  ready.
+- `data/roster.csv` — a **join/leave log**: one row per membership change.
+  ```
+  "date","name","class","log"
+  ```
+  `log` is either `joined` or `left`. The site replays this log in date
+  order to reconstruct who was on the roster (and their class) as of any
+  given date — add a new `joined` row when someone joins, and a `left` row
+  when someone leaves, in chronological order. No need to re-list unchanged
+  members; the site carries forward everyone who last `joined` and hasn't
+  since `left`.
 
 Both files must keep their header row and column order. Values are matched
 case-sensitively on `ingame_name`, so keep spelling/casing consistent

@@ -3,9 +3,8 @@
 
   const state = {
     attendance: [], // { date, event, field, ingame_name, points }
-    roster: [], // { date, ingame_name }
-    rosterByDate: new Map(), // date -> Set(ingame_name)
-    rosterDatesSorted: [], // ascending
+    rosterEvents: [], // { date, name, class, log } sorted ascending by date, joined/left log
+    rosterEventDatesSorted: [], // unique ascending dates
   };
 
   const fmtPct = (n) => (Number.isFinite(n) ? (n * 100).toFixed(1) + "%" : "—");
@@ -18,17 +17,21 @@
     return parseCSV(text);
   }
 
+  // Replays the join/leave log up to (and including) dateStr and returns the
+  // resulting roster as a Map of name -> class. Returns null if there's no
+  // roster data loaded at all.
   function getRosterAsOf(dateStr) {
-    if (!dateStr) return null;
-    const dates = state.rosterDatesSorted;
-    let match = null;
-    for (let i = dates.length - 1; i >= 0; i--) {
-      if (dates[i] <= dateStr) {
-        match = dates[i];
-        break;
+    if (!dateStr || state.rosterEvents.length === 0) return null;
+    const roster = new Map();
+    for (const ev of state.rosterEvents) {
+      if (ev.date > dateStr) break;
+      if (ev.log === "left") {
+        roster.delete(ev.name);
+      } else {
+        roster.set(ev.name, ev.class);
       }
     }
-    return match ? state.rosterByDate.get(match) : null;
+    return roster;
   }
 
   function sessionKey(row) {
@@ -279,13 +282,13 @@
   function initMembersTab() {
     const dateInput = document.getElementById("members-date");
 
-    const allDates = state.rosterDatesSorted.concat(state.attendance.map((r) => r.date)).sort();
+    const allDates = state.rosterEventDatesSorted.concat(state.attendance.map((r) => r.date)).sort();
     if (allDates.length) {
       dateInput.min = allDates[0];
       dateInput.max = allDates[allDates.length - 1];
     }
-    if (state.rosterDatesSorted.length) {
-      dateInput.value = state.rosterDatesSorted[state.rosterDatesSorted.length - 1];
+    if (state.rosterEventDatesSorted.length) {
+      dateInput.value = state.rosterEventDatesSorted[state.rosterEventDatesSorted.length - 1];
     }
 
     dateInput.addEventListener("change", renderMembers);
@@ -300,15 +303,16 @@
     tbody.innerHTML = "";
 
     if (!roster) {
-      countEl.textContent = "No roster snapshot on or before this date.";
-      tbody.innerHTML = '<tr><td colspan="3" class="empty">No data.</td></tr>';
+      countEl.textContent = "No roster data available.";
+      tbody.innerHTML = '<tr><td colspan="4" class="empty">No data.</td></tr>';
       return;
     }
 
     countEl.textContent = roster.size + " member" + (roster.size === 1 ? "" : "s") + " as of " + date;
 
-    const names = Array.from(roster).sort((a, b) => a.localeCompare(b));
+    const names = Array.from(roster.keys()).sort((a, b) => a.localeCompare(b));
     for (const name of names) {
+      const memberClass = roster.get(name);
       const history = state.attendance.filter((r) => r.ingame_name === name);
       const sessions = new Set(history.map(sessionKey)).size;
       const lastAttended = history.length
@@ -317,6 +321,7 @@
       const tr = document.createElement("tr");
       tr.innerHTML =
         "<td>" + escapeHTML(name) + "</td>" +
+        "<td>" + escapeHTML(memberClass || "—") + "</td>" +
         "<td>" + fmtNum(sessions) + "</td>" +
         "<td>" + escapeHTML(lastAttended) + "</td>";
       tbody.appendChild(tr);
@@ -357,12 +362,10 @@
         points: Number(r.points) || 0,
       }));
 
-      state.roster = rosterRaw.map((r) => ({ date: r.date, ingame_name: r.ingame_name }));
-      for (const r of state.roster) {
-        if (!state.rosterByDate.has(r.date)) state.rosterByDate.set(r.date, new Set());
-        state.rosterByDate.get(r.date).add(r.ingame_name);
-      }
-      state.rosterDatesSorted = Array.from(state.rosterByDate.keys()).sort();
+      state.rosterEvents = rosterRaw
+        .map((r) => ({ date: r.date, name: r.name, class: r.class, log: r.log }))
+        .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+      state.rosterEventDatesSorted = Array.from(new Set(state.rosterEvents.map((r) => r.date))).sort();
 
       initTabs();
       initOverviewTab();
