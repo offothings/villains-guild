@@ -1,7 +1,7 @@
 # Guild Attendance Tracker
 
-A static site (no build step) that shows guild event attendance from two CSV
-files. Built to run on GitHub Pages.
+A static site (no build step) that shows guild event attendance from two
+tabs of a Google Sheet. Built to run on GitHub Pages.
 
 ## Tabs
 
@@ -14,15 +14,21 @@ files. Built to run on GitHub Pages.
    that date, plus each member's all-time session count and last-attended
    date.
 
-## Data files
+## Data source
 
-- `data/attendance.csv` — one row per player per event:
+Both tables live as tabs in one
+[Google Sheet](https://docs.google.com/spreadsheets/d/1VkAB0RWFQBzVkEJUyBoHu_mPxW5Mnqz373GcDpKlMw0/edit).
+The site fetches each tab's CSV export directly at page load — there is no
+local copy of the data in this repo.
+
+- **Attendance** tab (gid `0`) — one row per player per event:
   ```
-  "date","event","field","ingame_name","points"
+  date, event, field, ingame_name, points
   ```
-- `data/roster.csv` — a **join/leave log**: one row per membership change.
+- **Roster** tab (gid `108271403`) — a **join/leave log**: one row per
+  membership change.
   ```
-  "date","name","class","log"
+  date, name, class, log
   ```
   `log` is either `joined` or `left`. The site replays this log in date
   order to reconstruct who was on the roster (and their class) as of any
@@ -31,21 +37,29 @@ files. Built to run on GitHub Pages.
   members; the site carries forward everyone who last `joined` and hasn't
   since `left`.
 
-Both files must keep their header row and column order. Values are matched
+Both tabs must keep their header row and column order. Values are matched
 case-sensitively on `ingame_name`, so keep spelling/casing consistent
-between the two files.
+between the two tabs.
+
+The URLs the site fetches are built from the spreadsheet ID and each tab's
+`gid` in `js/app.js` (`SPREADSHEET_ID`, `ATTENDANCE_GID`, `ROSTER_GID`). If
+a tab is ever added, removed, or reordered, its `gid` can change — find the
+current one from the tab's URL in Google Sheets (`...#gid=123456`) and
+update it there.
 
 ## Updating data
 
-Edit `data/attendance.csv` and `data/roster.csv` directly (e.g. export from
-a spreadsheet as CSV, keeping the quoted-header format), commit, and push.
-The site re-reads these files on every page load — no build/deploy step
-needed beyond a normal git push.
+Edit the Google Sheet directly — no commit or push needed. The site
+re-fetches both tabs on every page load.
+
+The sheet must stay shared as **Anyone with the link → Viewer** (or more
+open) for the CSV export endpoint to be reachable without login; if
+sharing is tightened, the site will fail to load data.
 
 ## Local preview
 
-Browsers block `fetch()` on local files opened directly, so serve the
-folder over HTTP:
+Serve the folder over HTTP (this also avoids unrelated `file://` quirks in
+some browsers):
 
 ```bash
 python3 -m http.server 8000

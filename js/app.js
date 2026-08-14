@@ -7,12 +7,23 @@
     rosterEventDatesSorted: [], // unique ascending dates
   };
 
+  // Guild data lives in a Google Sheet (one spreadsheet, one tab per file).
+  // Each tab is fetched as CSV via Sheets' export endpoint. The sheet must
+  // be shared as "Anyone with the link" → Viewer for this to work.
+  const SPREADSHEET_ID = "1VkAB0RWFQBzVkEJUyBoHu_mPxW5Mnqz373GcDpKlMw0";
+  const ATTENDANCE_GID = "0";
+  const ROSTER_GID = "108271403";
+
+  function sheetCSVUrl(gid) {
+    return "https://docs.google.com/spreadsheets/d/" + SPREADSHEET_ID + "/export?format=csv&gid=" + gid;
+  }
+
   const fmtPct = (n) => (Number.isFinite(n) ? (n * 100).toFixed(1) + "%" : "—");
   const fmtNum = (n) => (Number.isFinite(n) ? n.toLocaleString() : "—");
 
-  async function loadCSV(path) {
-    const res = await fetch(path, { cache: "no-store" });
-    if (!res.ok) throw new Error("Failed to load " + path + " (" + res.status + ")");
+  async function loadCSV(url) {
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) throw new Error("Failed to load " + url + " (" + res.status + ")");
     const text = await res.text();
     return parseCSV(text);
   }
@@ -393,8 +404,8 @@
   async function init() {
     try {
       const [attendanceRaw, rosterRaw] = await Promise.all([
-        loadCSV("data/attendance.csv"),
-        loadCSV("data/roster.csv"),
+        loadCSV(sheetCSVUrl(ATTENDANCE_GID)),
+        loadCSV(sheetCSVUrl(ROSTER_GID)),
       ]);
 
       state.attendance = attendanceRaw.map((r) => ({
@@ -417,7 +428,7 @@
     } catch (err) {
       console.error(err);
       showError(
-        "Couldn't load guild data. If you're opening this file directly (file://), run a local server instead — e.g. `python3 -m http.server` — since browsers block CSV loading from local files. Details: " +
+        "Couldn't load guild data from the Google Sheet. Make sure it's shared as \"Anyone with the link\" → Viewer, and that the sheet/tab structure hasn't changed. Details: " +
           err.message
       );
     }

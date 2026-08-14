@@ -312,3 +312,11 @@ tbody tr:hover {
 .site-footer code {
   color: var(--gold-dim);
 }
+
+.site-footer a {
+  color: var(--gold-dim);
+}
+
+.site-footer a:hover {
+  color: var(--gold);
+}
