@@ -34,8 +34,10 @@
     return roster;
   }
 
+  // Sessions are identified by date + event only — the "field" column does
+  // not distinguish a separate event/session.
   function sessionKey(row) {
-    return row.date + "|||" + row.event + "|||" + row.field;
+    return row.date + "|||" + row.event;
   }
 
   function buildSessions(rows) {
@@ -46,7 +48,6 @@
         sessions.set(key, {
           date: row.date,
           event: row.event,
-          field: row.field,
           attendees: new Set(),
           totalPoints: 0,
         });
@@ -154,14 +155,13 @@
     const tbody = document.querySelector("#overview-table tbody");
     tbody.innerHTML = "";
     if (sessionRows.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="6" class="empty">No sessions in this range.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="5" class="empty">No sessions in this range.</td></tr>';
     } else {
       for (const s of sessionRows) {
         const tr = document.createElement("tr");
         tr.innerHTML =
           "<td>" + escapeHTML(s.date) + "</td>" +
           "<td>" + escapeHTML(s.event) + "</td>" +
-          "<td>" + escapeHTML(s.field) + "</td>" +
           "<td>" + fmtNum(s.attendees.size) + (s.rosterSize ? " / " + fmtNum(s.rosterSize) : "") + "</td>" +
           "<td>" + fmtPct(s.pct) + "</td>" +
           "<td>" + fmtNum(s.totalPoints) + "</td>";
@@ -198,7 +198,7 @@
 
   function initPlayerTab() {
     const nameInput = document.getElementById("player-name");
-    const datalist = document.getElementById("player-name-list");
+    const dropdown = document.getElementById("player-name-dropdown");
     const startInput = document.getElementById("player-start");
     const endInput = document.getElementById("player-end");
     const clearBtn = document.getElementById("player-clear");
@@ -206,7 +206,50 @@
     const names = Array.from(new Set(state.attendance.map((r) => r.ingame_name))).sort((a, b) =>
       a.localeCompare(b)
     );
-    datalist.innerHTML = names.map((n) => '<option value="' + escapeHTML(n) + '">').join("");
+
+    function renderDropdown() {
+      const q = nameInput.value.trim().toLowerCase();
+      const matches = q ? names.filter((n) => n.toLowerCase().includes(q)) : names;
+      dropdown.innerHTML = matches.length
+        ? matches
+            .slice(0, 50)
+            .map((n) => '<li data-name="' + escapeHTML(n) + '">' + escapeHTML(n) + "</li>")
+            .join("")
+        : '<li class="empty">No matches</li>';
+    }
+
+    function openDropdown() {
+      renderDropdown();
+      dropdown.classList.add("open");
+    }
+
+    function closeDropdown() {
+      dropdown.classList.remove("open");
+    }
+
+    nameInput.addEventListener("click", openDropdown);
+    nameInput.addEventListener("input", () => {
+      openDropdown();
+      renderPlayer();
+    });
+    nameInput.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") closeDropdown();
+    });
+
+    dropdown.addEventListener("click", (e) => {
+      // Stop the click from bubbling to the <label>, which would otherwise
+      // forward a synthetic click to the input and reopen the dropdown.
+      e.stopPropagation();
+      const li = e.target.closest("li[data-name]");
+      if (!li) return;
+      nameInput.value = li.dataset.name;
+      closeDropdown();
+      renderPlayer();
+    });
+
+    document.addEventListener("click", (e) => {
+      if (!e.target.closest("#player-name-combo")) closeDropdown();
+    });
 
     const dates = state.attendance.map((r) => r.date);
     if (dates.length) {
@@ -214,13 +257,13 @@
       startInput.max = endInput.max = dates.reduce((a, b) => (b > a ? b : a));
     }
 
-    nameInput.addEventListener("input", renderPlayer);
     startInput.addEventListener("change", renderPlayer);
     endInput.addEventListener("change", renderPlayer);
     clearBtn.addEventListener("click", () => {
       nameInput.value = "";
       startInput.value = "";
       endInput.value = "";
+      closeDropdown();
       renderPlayer();
     });
 

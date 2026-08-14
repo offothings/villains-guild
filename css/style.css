@@ -117,6 +117,18 @@ main {
   color: var(--text-dim);
 }
 
+.filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
+
+.filter-field label {
+  display: block;
+}
+
 .filters input {
   background: var(--bg);
   border: 1px solid var(--border);
@@ -131,6 +143,51 @@ main {
 .filters input:focus {
   outline: none;
   border-color: var(--gold-dim);
+}
+
+.combo {
+  position: relative;
+}
+
+.combo-dropdown {
+  display: none;
+  position: absolute;
+  top: calc(100% + 0.25rem);
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: 0.25rem 0;
+  list-style: none;
+  max-height: 220px;
+  overflow-y: auto;
+  background: var(--bg-panel-alt);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  box-shadow: 0 8px 20px var(--shadow);
+  z-index: 20;
+}
+
+.combo-dropdown.open {
+  display: block;
+}
+
+.combo-dropdown li {
+  padding: 0.45rem 0.7rem;
+  font-size: 0.9rem;
+  color: var(--text);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.combo-dropdown li:hover,
+.combo-dropdown li.active {
+  background: rgba(212, 175, 55, 0.12);
+  color: var(--gold);
+}
+
+.combo-dropdown li.empty {
+  color: var(--text-dim);
+  cursor: default;
 }
 
 .btn-secondary {
