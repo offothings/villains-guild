@@ -17,6 +17,7 @@
       <button class="tab-btn active" data-tab="tab-overview">Guild Overview</button>
       <button class="tab-btn" data-tab="tab-player">Player Lookup</button>
       <button class="tab-btn" data-tab="tab-members">Member List</button>
+      <button class="tab-btn" data-tab="tab-signup">Signup Audit</button>
     </nav>
   </header>
 
@@ -122,6 +123,67 @@
               <th>Class</th>
               <th>Sessions Attended (all-time)</th>
               <th>Last Attended</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Signup Audit Tab -->
+    <section id="tab-signup" class="tab-panel">
+      <div class="filters">
+        <label>From
+          <input type="date" id="signup-start" />
+        </label>
+        <label>To
+          <input type="date" id="signup-end" />
+        </label>
+        <button id="signup-clear" class="btn-secondary">Clear</button>
+      </div>
+
+      <div id="signup-stats" class="stat-grid"></div>
+
+      <h2>Signed Up, Didn't Attend</h2>
+      <div class="table-wrap">
+        <table id="signup-no-attendance-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Event</th>
+              <th>Player</th>
+              <th>Signed-up Field</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <h2>Field Mismatches</h2>
+      <div class="table-wrap">
+        <table id="signup-field-mismatch-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Event</th>
+              <th>Player</th>
+              <th>Signed-up Field</th>
+              <th>Attended Field</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <h2>Attended, Didn't Sign Up</h2>
+      <div class="table-wrap">
+        <table id="signup-no-signup-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Event</th>
+              <th>Player</th>
+              <th>Attended Field</th>
             </tr>
           </thead>
           <tbody></tbody>

@@ -5,6 +5,7 @@
     attendance: [], // { date, event, field, ingame_name, points }
     rosterEvents: [], // { date, name, class, log } sorted ascending by date, joined/left log
     rosterEventDatesSorted: [], // unique ascending dates
+    signups: [], // { date, event, field, ingame_name }
   };
 
   // Guild data lives in a Google Sheet (one spreadsheet, one tab per file).
@@ -13,6 +14,7 @@
   const SPREADSHEET_ID = "1VkAB0RWFQBzVkEJUyBoHu_mPxW5Mnqz373GcDpKlMw0";
   const ATTENDANCE_GID = "0";
   const ROSTER_GID = "108271403";
+  const SIGNUP_GID = "311091534";
 
   function sheetCSVUrl(gid) {
     return "https://docs.google.com/spreadsheets/d/" + SPREADSHEET_ID + "/export?format=csv&gid=" + gid;
@@ -382,6 +384,127 @@
     }
   }
 
+  // ---------- Signup Audit tab ----------
+
+  function initSignupTab() {
+    const startInput = document.getElementById("signup-start");
+    const endInput = document.getElementById("signup-end");
+    const clearBtn = document.getElementById("signup-clear");
+
+    const dates = state.attendance.map((r) => r.date).concat(state.signups.map((r) => r.date));
+    if (dates.length) {
+      startInput.min = endInput.min = dates.reduce((a, b) => (b < a ? b : a));
+      startInput.max = endInput.max = dates.reduce((a, b) => (b > a ? b : a));
+    }
+
+    startInput.addEventListener("change", renderSignupAudit);
+    endInput.addEventListener("change", renderSignupAudit);
+    clearBtn.addEventListener("click", () => {
+      startInput.value = "";
+      endInput.value = "";
+      renderSignupAudit();
+    });
+
+    renderSignupAudit();
+  }
+
+  // Joins attendance and sign-up rows on date + event + ingame_name (per
+  // the guild's own definition of a "session") and buckets them into three
+  // kinds of mismatch: signed up but never showed, showed on a different
+  // field than signed up for, and showed without ever signing up.
+  function buildSignupAudit(attendanceRows, signupRows) {
+    const keyOf = (r) => r.date + "|||" + r.event + "|||" + r.ingame_name;
+
+    const attendanceByKey = new Map();
+    for (const r of attendanceRows) attendanceByKey.set(keyOf(r), r);
+
+    const signupByKey = new Map();
+    for (const r of signupRows) signupByKey.set(keyOf(r), r);
+
+    const noAttendance = [];
+    const fieldMismatch = [];
+    for (const [key, s] of signupByKey) {
+      const a = attendanceByKey.get(key);
+      if (!a) {
+        noAttendance.push(s);
+      } else if (a.field !== s.field) {
+        fieldMismatch.push({
+          date: s.date,
+          event: s.event,
+          ingame_name: s.ingame_name,
+          signupField: s.field,
+          attendedField: a.field,
+        });
+      }
+    }
+
+    const noSignup = [];
+    for (const [key, a] of attendanceByKey) {
+      if (!signupByKey.has(key)) noSignup.push(a);
+    }
+
+    const byDateEventName = (a, b) =>
+      b.date.localeCompare(a.date) || a.event.localeCompare(b.event) || a.ingame_name.localeCompare(b.ingame_name);
+    noAttendance.sort(byDateEventName);
+    fieldMismatch.sort(byDateEventName);
+    noSignup.sort(byDateEventName);
+
+    return { noAttendance, fieldMismatch, noSignup };
+  }
+
+  function renderSignupAudit() {
+    const start = document.getElementById("signup-start").value;
+    const end = document.getElementById("signup-end").value;
+
+    const attendance = state.attendance.filter((r) => inRange(r.date, start, end));
+    const signups = state.signups.filter((r) => inRange(r.date, start, end));
+
+    const { noAttendance, fieldMismatch, noSignup } = buildSignupAudit(attendance, signups);
+
+    const stats = document.getElementById("signup-stats");
+    stats.innerHTML = "";
+    addStatCard(stats, "Signed Up, No Attendance", fmtNum(noAttendance.length));
+    addStatCard(stats, "Field Mismatches", fmtNum(fieldMismatch.length));
+    addStatCard(stats, "Attended, No Sign-up", fmtNum(noSignup.length));
+
+    fillSignupTable("#signup-no-attendance-table tbody", noAttendance, (r) => [
+      r.date,
+      r.event,
+      r.ingame_name,
+      r.field,
+    ]);
+    fillSignupTable("#signup-field-mismatch-table tbody", fieldMismatch, (r) => [
+      r.date,
+      r.event,
+      r.ingame_name,
+      r.signupField,
+      r.attendedField,
+    ]);
+    fillSignupTable("#signup-no-signup-table tbody", noSignup, (r) => [
+      r.date,
+      r.event,
+      r.ingame_name,
+      r.field,
+    ]);
+  }
+
+  function fillSignupTable(bodySelector, rows, toCells) {
+    const tbody = document.querySelector(bodySelector);
+    const colCount = tbody.closest("table").querySelectorAll("thead th").length;
+    tbody.innerHTML = "";
+    if (rows.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="' + colCount + '" class="empty">None in this range.</td></tr>';
+      return;
+    }
+    for (const row of rows) {
+      const tr = document.createElement("tr");
+      tr.innerHTML = toCells(row)
+        .map((c) => "<td>" + escapeHTML(c) + "</td>")
+        .join("");
+      tbody.appendChild(tr);
+    }
+  }
+
   // ---------- Utilities ----------
 
   function escapeHTML(str) {
@@ -403,9 +526,10 @@
 
   async function init() {
     try {
-      const [attendanceRaw, rosterRaw] = await Promise.all([
+      const [attendanceRaw, rosterRaw, signupRaw] = await Promise.all([
         loadCSV(sheetCSVUrl(ATTENDANCE_GID)),
         loadCSV(sheetCSVUrl(ROSTER_GID)),
+        loadCSV(sheetCSVUrl(SIGNUP_GID)),
       ]);
 
       state.attendance = attendanceRaw.map((r) => ({
@@ -421,10 +545,18 @@
         .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
       state.rosterEventDatesSorted = Array.from(new Set(state.rosterEvents.map((r) => r.date))).sort();
 
+      state.signups = signupRaw.map((r) => ({
+        date: r.date,
+        event: r.event,
+        field: r.field,
+        ingame_name: r.ingame_name,
+      }));
+
       initTabs();
       initOverviewTab();
       initPlayerTab();
       initMembersTab();
+      initSignupTab();
     } catch (err) {
       console.error(err);
       showError(
