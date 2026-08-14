@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Guild Attendance Tracker</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚔️</text></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header class="site-header">
+    <h1><span class="crest">⚔</span> Guild Attendance <span class="crest">⚔</span></h1>
+    <nav class="tabs">
+      <button class="tab-btn active" data-tab="tab-overview">Guild Overview</button>
+      <button class="tab-btn" data-tab="tab-player">Player Lookup</button>
+      <button class="tab-btn" data-tab="tab-members">Member List</button>
+    </nav>
+  </header>
+
+  <main>
+    <!-- Overview Tab -->
+    <section id="tab-overview" class="tab-panel active">
+      <div class="filters">
+        <label>From
+          <input type="date" id="overview-start" />
+        </label>
+        <label>To
+          <input type="date" id="overview-end" />
+        </label>
+        <button id="overview-clear" class="btn-secondary">Clear</button>
+      </div>
+
+      <div id="overview-stats" class="stat-grid"></div>
+
+      <h2>Sessions</h2>
+      <div class="table-wrap">
+        <table id="overview-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Event</th>
+              <th>Field</th>
+              <th>Attendees</th>
+              <th>Attendance %</th>
+              <th>Total Points</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <h2>Leaderboard</h2>
+      <div class="table-wrap">
+        <table id="overview-leaderboard">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Player</th>
+              <th>Sessions</th>
+              <th>Total Points</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Player Tab -->
+    <section id="tab-player" class="tab-panel">
+      <div class="filters">
+        <label>Player
+          <input type="text" id="player-name" list="player-name-list" placeholder="Search a player..." autocomplete="off" />
+          <datalist id="player-name-list"></datalist>
+        </label>
+        <label>From
+          <input type="date" id="player-start" />
+        </label>
+        <label>To
+          <input type="date" id="player-end" />
+        </label>
+        <button id="player-clear" class="btn-secondary">Clear</button>
+      </div>
+
+      <div id="player-stats" class="stat-grid"></div>
+
+      <h2>Attendance History</h2>
+      <div class="table-wrap">
+        <table id="player-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Event</th>
+              <th>Field</th>
+              <th>Points</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Members Tab -->
+    <section id="tab-members" class="tab-panel">
+      <div class="filters">
+        <label>As of
+          <input type="date" id="members-date" />
+        </label>
+      </div>
+
+      <p id="members-count" class="hint"></p>
+
+      <div class="table-wrap">
+        <table id="members-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Sessions Attended (all-time)</th>
+              <th>Last Attended</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>Data loaded from <code>data/attendance.csv</code> and <code>data/roster.csv</code>.</p>
+  </footer>
+
+  <script src="js/csv.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
