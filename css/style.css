@@ -41,9 +41,10 @@ h1, h2 {
 
 .banner-image {
   display: block;
-  width: 100%;
-  max-width: 1774px;
+  width: auto;
+  max-width: 100%;
   height: auto;
+  max-height: 300px;
   margin: 0 auto;
 }
 
