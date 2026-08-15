@@ -1,15 +1,17 @@
 :root {
-  --bg: #14100c;
-  --bg-panel: #1c1611;
-  --bg-panel-alt: #221a14;
-  --border: #3a2d1f;
-  --gold: #d4af37;
-  --gold-dim: #a8873a;
-  --crimson: #8b1e2f;
-  --crimson-bright: #b5293d;
-  --text: #e8e2d5;
-  --text-dim: #a99e8b;
-  --shadow: rgba(0, 0, 0, 0.5);
+  /* Palette sampled from the Villains Group banner: near-black red
+     corners, antique-bronze gold lettering, vivid red eye-glow. */
+  --bg: #0c0605;
+  --bg-panel: #1a0d0a;
+  --bg-panel-alt: #22110c;
+  --border: #43201a;
+  --gold: #cf9f5c;
+  --gold-dim: #9c7a45;
+  --crimson: #7c1219;
+  --crimson-bright: #e2382c;
+  --text: #ede3d2;
+  --text-dim: #b3a08c;
+  --shadow: rgba(0, 0, 0, 0.6);
 }
 
 * {
@@ -18,7 +20,7 @@
 
 body {
   margin: 0;
-  background: radial-gradient(ellipse at top, #201812 0%, var(--bg) 60%);
+  background: radial-gradient(ellipse at top, #1a0d09 0%, var(--bg) 60%);
   color: var(--text);
   font-family: "Inter", system-ui, sans-serif;
   min-height: 100vh;
@@ -31,20 +33,18 @@ h1, h2 {
 }
 
 .site-header {
-  padding: 2rem 1.5rem 0;
   text-align: center;
   border-bottom: 1px solid var(--border);
-  background: linear-gradient(180deg, rgba(139, 30, 47, 0.15), transparent);
+  background: var(--bg);
+  overflow: hidden;
 }
 
-.site-header h1 {
-  margin: 0 0 1.25rem;
-  font-size: 2rem;
-  text-shadow: 0 0 12px rgba(212, 175, 55, 0.35);
-}
-
-.crest {
-  color: var(--crimson-bright);
+.banner-image {
+  display: block;
+  width: 100%;
+  max-width: 1774px;
+  height: auto;
+  margin: 0 auto;
 }
 
 .tabs {
@@ -52,6 +52,7 @@ h1, h2 {
   justify-content: center;
   gap: 0.5rem;
   flex-wrap: wrap;
+  padding: 1rem 1.5rem 0;
 }
 
 .tab-btn {
@@ -293,7 +294,7 @@ tbody tr:hover {
 }
 
 .error-box {
-  background: rgba(139, 30, 47, 0.15);
+  background: rgba(124, 18, 25, 0.18);
   border: 1px solid var(--crimson);
   color: var(--text);
   padding: 1.5rem;
