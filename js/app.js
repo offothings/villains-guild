@@ -31,8 +31,10 @@
   }
 
   // Replays the join/leave log up to (and including) dateStr and returns the
-  // resulting roster as a Map of name -> class. Returns null if there's no
-  // roster data loaded at all.
+  // resulting roster as a Map of name -> { class, joinedDate }, where
+  // joinedDate is the date of the join that led to current membership (so a
+  // rejoin after leaving shows the most recent join, not the original one).
+  // Returns null if there's no roster data loaded at all.
   function getRosterAsOf(dateStr) {
     if (!dateStr || state.rosterEvents.length === 0) return null;
     const roster = new Map();
@@ -41,7 +43,7 @@
       if (ev.log === "left") {
         roster.delete(ev.name);
       } else {
-        roster.set(ev.name, ev.class);
+        roster.set(ev.name, { class: ev.class, joinedDate: ev.date });
       }
     }
     return roster;
@@ -337,6 +339,7 @@
 
   function initMembersTab() {
     const dateInput = document.getElementById("members-date");
+    const zeroToggle = document.getElementById("members-zero-toggle");
 
     const allDates = state.rosterEventDatesSorted.concat(state.attendance.map((r) => r.date)).sort();
     if (allDates.length) {
@@ -348,11 +351,17 @@
     }
 
     dateInput.addEventListener("change", renderMembers);
+    zeroToggle.addEventListener("click", () => {
+      zeroToggle.classList.toggle("active");
+      renderMembers();
+    });
+
     renderMembers();
   }
 
   function renderMembers() {
     const date = document.getElementById("members-date").value;
+    const zeroOnly = document.getElementById("members-zero-toggle").classList.contains("active");
     const roster = getRosterAsOf(date);
     const tbody = document.querySelector("#members-table tbody");
     const countEl = document.getElementById("members-count");
@@ -360,26 +369,44 @@
 
     if (!roster) {
       countEl.textContent = "No roster data available.";
-      tbody.innerHTML = '<tr><td colspan="4" class="empty">No data.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="5" class="empty">No data.</td></tr>';
       return;
     }
 
-    countEl.textContent = roster.size + " member" + (roster.size === 1 ? "" : "s") + " as of " + date;
+    const rows = Array.from(roster.keys())
+      .sort((a, b) => a.localeCompare(b))
+      .map((name) => {
+        const info = roster.get(name);
+        const history = state.attendance.filter((r) => r.ingame_name === name);
+        const sessions = new Set(history.map(sessionKey)).size;
+        const lastAttended = history.length
+          ? history.reduce((a, b) => (b.date > a.date ? b : a)).date
+          : "—";
+        return { name, class: info.class, joinedDate: info.joinedDate, sessions, lastAttended };
+      });
 
-    const names = Array.from(roster.keys()).sort((a, b) => a.localeCompare(b));
-    for (const name of names) {
-      const memberClass = roster.get(name);
-      const history = state.attendance.filter((r) => r.ingame_name === name);
-      const sessions = new Set(history.map(sessionKey)).size;
-      const lastAttended = history.length
-        ? history.reduce((a, b) => (b.date > a.date ? b : a)).date
-        : "—";
+    const visibleRows = zeroOnly ? rows.filter((r) => r.sessions === 0) : rows;
+
+    countEl.textContent =
+      roster.size + " member" + (roster.size === 1 ? "" : "s") + " as of " + date +
+      (zeroOnly ? " — showing " + visibleRows.length + " with zero attendance" : "");
+
+    if (visibleRows.length === 0) {
+      tbody.innerHTML =
+        '<tr><td colspan="5" class="empty">' +
+        (zeroOnly ? "No members with zero attendance." : "No data.") +
+        "</td></tr>";
+      return;
+    }
+
+    for (const r of visibleRows) {
       const tr = document.createElement("tr");
       tr.innerHTML =
-        "<td>" + escapeHTML(name) + "</td>" +
-        "<td>" + escapeHTML(memberClass || "—") + "</td>" +
-        "<td>" + fmtNum(sessions) + "</td>" +
-        "<td>" + escapeHTML(lastAttended) + "</td>";
+        "<td>" + escapeHTML(r.name) + "</td>" +
+        "<td>" + escapeHTML(r.class || "—") + "</td>" +
+        "<td>" + escapeHTML(r.joinedDate || "—") + "</td>" +
+        "<td>" + fmtNum(r.sessions) + "</td>" +
+        "<td>" + escapeHTML(r.lastAttended) + "</td>";
       tbody.appendChild(tr);
     }
   }
