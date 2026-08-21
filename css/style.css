@@ -142,6 +142,11 @@ main {
   min-width: 200px;
 }
 
+#members-max-attendance {
+  min-width: 90px;
+  max-width: 120px;
+}
+
 .filters input:focus {
   outline: none;
   border-color: var(--gold-dim);
@@ -207,12 +212,6 @@ main {
 .btn-secondary:hover {
   color: var(--gold);
   border-color: var(--gold-dim);
-}
-
-.btn-secondary.active {
-  color: var(--gold);
-  border-color: var(--gold-dim);
-  background: var(--bg-panel-alt);
 }
 
 .stat-grid {

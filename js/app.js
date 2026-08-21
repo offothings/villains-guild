@@ -339,7 +339,8 @@
 
   function initMembersTab() {
     const dateInput = document.getElementById("members-date");
-    const zeroToggle = document.getElementById("members-zero-toggle");
+    const maxAttendanceInput = document.getElementById("members-max-attendance");
+    const clearBtn = document.getElementById("members-clear");
 
     const allDates = state.rosterEventDatesSorted.concat(state.attendance.map((r) => r.date)).sort();
     if (allDates.length) {
@@ -351,8 +352,9 @@
     }
 
     dateInput.addEventListener("change", renderMembers);
-    zeroToggle.addEventListener("click", () => {
-      zeroToggle.classList.toggle("active");
+    maxAttendanceInput.addEventListener("input", renderMembers);
+    clearBtn.addEventListener("click", () => {
+      maxAttendanceInput.value = "";
       renderMembers();
     });
 
@@ -361,7 +363,8 @@
 
   function renderMembers() {
     const date = document.getElementById("members-date").value;
-    const zeroOnly = document.getElementById("members-zero-toggle").classList.contains("active");
+    const maxAttendanceRaw = document.getElementById("members-max-attendance").value;
+    const maxAttendance = maxAttendanceRaw === "" ? null : Math.max(0, Math.floor(Number(maxAttendanceRaw)));
     const roster = getRosterAsOf(date);
     const tbody = document.querySelector("#members-table tbody");
     const countEl = document.getElementById("members-count");
@@ -385,16 +388,21 @@
         return { name, class: info.class, joinedDate: info.joinedDate, sessions, lastAttended };
       });
 
-    const visibleRows = zeroOnly ? rows.filter((r) => r.sessions === 0) : rows;
+    const visibleRows =
+      maxAttendance === null || Number.isNaN(maxAttendance)
+        ? rows
+        : rows.filter((r) => r.sessions <= maxAttendance);
 
     countEl.textContent =
       roster.size + " member" + (roster.size === 1 ? "" : "s") + " as of " + date +
-      (zeroOnly ? " — showing " + visibleRows.length + " with zero attendance" : "");
+      (maxAttendance !== null && !Number.isNaN(maxAttendance)
+        ? " — showing " + visibleRows.length + " with " + fmtNum(maxAttendance) + " or fewer sessions"
+        : "");
 
     if (visibleRows.length === 0) {
       tbody.innerHTML =
         '<tr><td colspan="5" class="empty">' +
-        (zeroOnly ? "No members with zero attendance." : "No data.") +
+        (maxAttendance !== null ? "No members at or below that attendance." : "No data.") +
         "</td></tr>";
       return;
     }

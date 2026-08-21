@@ -111,7 +111,10 @@
         <label>As of
           <input type="date" id="members-date" />
         </label>
-        <button id="members-zero-toggle" class="btn-secondary">Zero Attendance Only</button>
+        <label>Max Attendance
+          <input type="number" id="members-max-attendance" min="0" step="1" placeholder="Any" />
+        </label>
+        <button id="members-clear" class="btn-secondary">Clear</button>
       </div>
 
       <p id="members-count" class="hint"></p>
