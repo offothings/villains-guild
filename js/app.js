@@ -338,22 +338,23 @@
   // ---------- Members tab ----------
 
   function initMembersTab() {
-    const dateInput = document.getElementById("members-date");
+    const startInput = document.getElementById("members-start");
+    const endInput = document.getElementById("members-end");
     const maxAttendanceInput = document.getElementById("members-max-attendance");
     const clearBtn = document.getElementById("members-clear");
 
     const allDates = state.rosterEventDatesSorted.concat(state.attendance.map((r) => r.date)).sort();
     if (allDates.length) {
-      dateInput.min = allDates[0];
-      dateInput.max = allDates[allDates.length - 1];
-    }
-    if (state.rosterEventDatesSorted.length) {
-      dateInput.value = state.rosterEventDatesSorted[state.rosterEventDatesSorted.length - 1];
+      startInput.min = endInput.min = allDates[0];
+      startInput.max = endInput.max = allDates[allDates.length - 1];
     }
 
-    dateInput.addEventListener("change", renderMembers);
+    startInput.addEventListener("change", renderMembers);
+    endInput.addEventListener("change", renderMembers);
     maxAttendanceInput.addEventListener("input", renderMembers);
     clearBtn.addEventListener("click", () => {
+      startInput.value = "";
+      endInput.value = "";
       maxAttendanceInput.value = "";
       renderMembers();
     });
@@ -362,13 +363,28 @@
   }
 
   function renderMembers() {
-    const date = document.getElementById("members-date").value;
+    const start = document.getElementById("members-start").value;
+    const end = document.getElementById("members-end").value;
     const maxAttendanceRaw = document.getElementById("members-max-attendance").value;
     const maxAttendance = maxAttendanceRaw === "" ? null : Math.max(0, Math.floor(Number(maxAttendanceRaw)));
-    const roster = getRosterAsOf(date);
+
+    // The date range only activates once both ends are set. Max Attendance
+    // is scoped to that range and does nothing without it — it never
+    // filters against all-time attendance.
+    const rangeActive = !!start && !!end;
+    const applyMaxFilter = rangeActive && maxAttendance !== null && !Number.isNaN(maxAttendance);
+
+    const snapshotDate =
+      end || (state.rosterEventDatesSorted.length
+        ? state.rosterEventDatesSorted[state.rosterEventDatesSorted.length - 1]
+        : "");
+
+    const roster = getRosterAsOf(snapshotDate);
     const tbody = document.querySelector("#members-table tbody");
     const countEl = document.getElementById("members-count");
+    const sessionsHeader = document.getElementById("members-sessions-header");
     tbody.innerHTML = "";
+    sessionsHeader.textContent = rangeActive ? "Sessions Attended (in range)" : "Sessions Attended (all-time)";
 
     if (!roster) {
       countEl.textContent = "No roster data available.";
@@ -381,28 +397,27 @@
       .map((name) => {
         const info = roster.get(name);
         const history = state.attendance.filter((r) => r.ingame_name === name);
-        const sessions = new Set(history.map(sessionKey)).size;
+        const scopedHistory = rangeActive ? history.filter((r) => inRange(r.date, start, end)) : history;
+        const sessions = new Set(scopedHistory.map(sessionKey)).size;
         const lastAttended = history.length
           ? history.reduce((a, b) => (b.date > a.date ? b : a)).date
           : "—";
         return { name, class: info.class, joinedDate: info.joinedDate, sessions, lastAttended };
       });
 
-    const visibleRows =
-      maxAttendance === null || Number.isNaN(maxAttendance)
-        ? rows
-        : rows.filter((r) => r.sessions <= maxAttendance);
+    const visibleRows = applyMaxFilter ? rows.filter((r) => r.sessions <= maxAttendance) : rows;
 
-    countEl.textContent =
-      roster.size + " member" + (roster.size === 1 ? "" : "s") + " as of " + date +
-      (maxAttendance !== null && !Number.isNaN(maxAttendance)
-        ? " — showing " + visibleRows.length + " with " + fmtNum(maxAttendance) + " or fewer sessions"
-        : "");
+    const summary = [roster.size + " member" + (roster.size === 1 ? "" : "s") + " as of " + (snapshotDate || "—")];
+    if (rangeActive) summary.push("attendance counted " + start + " → " + end);
+    if (applyMaxFilter) {
+      summary.push("showing " + visibleRows.length + " with " + fmtNum(maxAttendance) + " or fewer sessions");
+    }
+    countEl.textContent = summary.join(" — ");
 
     if (visibleRows.length === 0) {
       tbody.innerHTML =
         '<tr><td colspan="5" class="empty">' +
-        (maxAttendance !== null ? "No members at or below that attendance." : "No data.") +
+        (applyMaxFilter ? "No members at or below that attendance." : "No data.") +
         "</td></tr>";
       return;
     }

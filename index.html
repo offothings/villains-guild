@@ -108,8 +108,11 @@
     <!-- Members Tab -->
     <section id="tab-members" class="tab-panel">
       <div class="filters">
-        <label>As of
-          <input type="date" id="members-date" />
+        <label>From
+          <input type="date" id="members-start" />
+        </label>
+        <label>To
+          <input type="date" id="members-end" />
         </label>
         <label>Max Attendance
           <input type="number" id="members-max-attendance" min="0" step="1" placeholder="Any" />
@@ -118,6 +121,7 @@
       </div>
 
       <p id="members-count" class="hint"></p>
+      <p class="hint">Leave From/To blank to see the current roster with all-time attendance. Max Attendance only applies once both dates are set.</p>
 
       <div class="table-wrap">
         <table id="members-table">
@@ -126,7 +130,7 @@
               <th>Name</th>
               <th>Class</th>
               <th>Date Joined</th>
-              <th>Sessions Attended (all-time)</th>
+              <th id="members-sessions-header">Sessions Attended (all-time)</th>
               <th>Last Attended</th>
             </tr>
           </thead>
