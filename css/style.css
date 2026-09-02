@@ -221,6 +221,10 @@ main {
   margin-bottom: 2rem;
 }
 
+.stat-grid > .hint {
+  grid-column: 1 / -1;
+}
+
 .stat-card {
   background: linear-gradient(160deg, var(--bg-panel-alt), var(--bg-panel));
   border: 1px solid var(--border);

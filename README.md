@@ -9,11 +9,14 @@ tabs of a Google Sheet. Built to run on GitHub Pages.
    count, unique players, avg attendees/session, overall attendance %), a
    per-session table, and a leaderboard.
 2. **Player Lookup** — filter by player name (with a single-click searchable
-   dropdown) and a date range: that player's stats and their full
-   attendance history.
-3. **Member List** — pick a date and see who was on the guild roster as of
-   that date, plus each member's all-time session count and last-attended
-   date.
+   dropdown) and a date range: that player's date joined, stats, and their
+   full attendance history.
+3. **Member List** — the current roster (name, class, date joined, all-time
+   session count, last-attended date) with optional filters: a From/To
+   range that scopes the session count to that window (and snapshots
+   membership as of the end date instead of "now"), a Max Attendance cutoff
+   that only applies once that range is set, and a Joined From/To range
+   that filters by each member's Date Joined.
 4. **Signup Audit** — date-range filter cross-referencing sign-ups against
    attendance for the same date + event + player, split into three lists:
    players who signed up but never showed, players who showed on a

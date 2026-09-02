@@ -117,11 +117,17 @@
         <label>Max Attendance
           <input type="number" id="members-max-attendance" min="0" step="1" placeholder="Any" />
         </label>
+        <label>Joined From
+          <input type="date" id="members-joined-start" />
+        </label>
+        <label>Joined To
+          <input type="date" id="members-joined-end" />
+        </label>
         <button id="members-clear" class="btn-secondary">Clear</button>
       </div>
 
       <p id="members-count" class="hint"></p>
-      <p class="hint">Leave From/To blank to see the current roster with all-time attendance. Max Attendance only applies once both dates are set.</p>
+      <p class="hint">Leave From/To blank to see the current roster with all-time attendance. Max Attendance only applies once both dates are set. Joined From/To filters by each member's Date Joined.</p>
 
       <div class="table-wrap">
         <table id="members-table">

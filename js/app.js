@@ -49,6 +49,18 @@
     return roster;
   }
 
+  // Most recent "joined" date for a player, even if they've since left —
+  // informational, unlike getRosterAsOf which is gated on current membership.
+  function getLatestJoinDate(name) {
+    let latest = null;
+    for (const ev of state.rosterEvents) {
+      if (ev.name === name && ev.log === "joined" && (!latest || ev.date > latest)) {
+        latest = ev.date;
+      }
+    }
+    return latest;
+  }
+
   // Sessions are identified by date + event only — the "field" column does
   // not distinguish a separate event/session.
   function sessionKey(row) {
@@ -301,13 +313,19 @@
       return;
     }
 
+    const joinedDate = getLatestJoinDate(name);
+
     const matchLower = name.toLowerCase();
     const rows = state.attendance
       .filter((r) => r.ingame_name.toLowerCase() === matchLower && inRange(r.date, start, end))
       .sort((a, b) => (a.date < b.date ? 1 : -1));
 
     if (rows.length === 0) {
-      stats.innerHTML = '<p class="hint">No attendance found for "' + escapeHTML(name) + '" in this range.</p>';
+      addStatCard(stats, "Date Joined", joinedDate || "—");
+      stats.insertAdjacentHTML(
+        "beforeend",
+        '<p class="hint">No attendance found for "' + escapeHTML(name) + '" in this range.</p>'
+      );
       tbody.innerHTML = '<tr><td colspan="4" class="empty">No records.</td></tr>';
       return;
     }
@@ -318,6 +336,7 @@
     const firstDate = rows[rows.length - 1].date;
     const lastDate = rows[0].date;
 
+    addStatCard(stats, "Date Joined", joinedDate || "—");
     addStatCard(stats, "Sessions Attended", fmtNum(rows.length));
     addStatCard(stats, "Total Points", fmtNum(totalPoints));
     addStatCard(stats, "Avg Points / Session", avgPoints.toFixed(1));
@@ -341,6 +360,8 @@
     const startInput = document.getElementById("members-start");
     const endInput = document.getElementById("members-end");
     const maxAttendanceInput = document.getElementById("members-max-attendance");
+    const joinedStartInput = document.getElementById("members-joined-start");
+    const joinedEndInput = document.getElementById("members-joined-end");
     const clearBtn = document.getElementById("members-clear");
 
     const allDates = state.rosterEventDatesSorted.concat(state.attendance.map((r) => r.date)).sort();
@@ -348,14 +369,23 @@
       startInput.min = endInput.min = allDates[0];
       startInput.max = endInput.max = allDates[allDates.length - 1];
     }
+    if (state.rosterEventDatesSorted.length) {
+      joinedStartInput.min = joinedEndInput.min = state.rosterEventDatesSorted[0];
+      joinedStartInput.max = joinedEndInput.max =
+        state.rosterEventDatesSorted[state.rosterEventDatesSorted.length - 1];
+    }
 
     startInput.addEventListener("change", renderMembers);
     endInput.addEventListener("change", renderMembers);
     maxAttendanceInput.addEventListener("input", renderMembers);
+    joinedStartInput.addEventListener("change", renderMembers);
+    joinedEndInput.addEventListener("change", renderMembers);
     clearBtn.addEventListener("click", () => {
       startInput.value = "";
       endInput.value = "";
       maxAttendanceInput.value = "";
+      joinedStartInput.value = "";
+      joinedEndInput.value = "";
       renderMembers();
     });
 
@@ -367,6 +397,9 @@
     const end = document.getElementById("members-end").value;
     const maxAttendanceRaw = document.getElementById("members-max-attendance").value;
     const maxAttendance = maxAttendanceRaw === "" ? null : Math.max(0, Math.floor(Number(maxAttendanceRaw)));
+    const joinedStart = document.getElementById("members-joined-start").value;
+    const joinedEnd = document.getElementById("members-joined-end").value;
+    const joinedFilterActive = !!joinedStart || !!joinedEnd;
 
     // The date range only activates once both ends are set. Max Attendance
     // is scoped to that range and does nothing without it — it never
@@ -403,12 +436,18 @@
           ? history.reduce((a, b) => (b.date > a.date ? b : a)).date
           : "—";
         return { name, class: info.class, joinedDate: info.joinedDate, sessions, lastAttended };
-      });
+      })
+      .filter((r) => !joinedFilterActive || inRange(r.joinedDate, joinedStart, joinedEnd));
 
     const visibleRows = applyMaxFilter ? rows.filter((r) => r.sessions <= maxAttendance) : rows;
 
     const summary = [roster.size + " member" + (roster.size === 1 ? "" : "s") + " as of " + (snapshotDate || "—")];
     if (rangeActive) summary.push("attendance counted " + start + " → " + end);
+    if (joinedFilterActive) {
+      summary.push(
+        "joined " + (joinedStart || "…") + " → " + (joinedEnd || "…") + " (" + rows.length + " match)"
+      );
+    }
     if (applyMaxFilter) {
       summary.push("showing " + visibleRows.length + " with " + fmtNum(maxAttendance) + " or fewer sessions");
     }
@@ -417,7 +456,7 @@
     if (visibleRows.length === 0) {
       tbody.innerHTML =
         '<tr><td colspan="5" class="empty">' +
-        (applyMaxFilter ? "No members at or below that attendance." : "No data.") +
+        (applyMaxFilter || joinedFilterActive ? "No members match these filters." : "No data.") +
         "</td></tr>";
       return;
     }
