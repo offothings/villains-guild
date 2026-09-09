@@ -691,9 +691,12 @@
 
     if (!members) {
       summaryEl.textContent = "No roster data available.";
-      ["#snitch-guild-league-table tbody", "#snitch-emperium-table tbody", "#snitch-signup-table tbody"].forEach(
-        (sel) => fillSignupTable(sel, [], () => [])
-      );
+      [
+        "#snitch-guild-league-table tbody",
+        "#snitch-emperium-table tbody",
+        "#snitch-signup-table tbody",
+        "#snitch-repeat-offenders-table tbody",
+      ].forEach((sel) => fillSignupTable(sel, [], () => []));
       return;
     }
 
@@ -706,7 +709,8 @@
       ...m,
       attendances: countAttendedSessions(m.name, GUILD_LEAGUE_EVENTS, start, end),
     }));
-    fillSignupTable("#snitch-guild-league-table tbody", bottomN(guildLeagueRows, 10, (r) => r.attendances), (r) => [
+    const guildLeagueBottom = bottomN(guildLeagueRows, 10, (r) => r.attendances);
+    fillSignupTable("#snitch-guild-league-table tbody", guildLeagueBottom, (r) => [
       r.name,
       r.class || "—",
       r.joinedDate || "—",
@@ -717,7 +721,8 @@
       ...m,
       attendances: countAttendedSessions(m.name, [EMPERIUM_OVERRUN_EVENT], start, end),
     }));
-    fillSignupTable("#snitch-emperium-table tbody", bottomN(emperiumRows, 10, (r) => r.attendances), (r) => [
+    const emperiumBottom = bottomN(emperiumRows, 10, (r) => r.attendances);
+    fillSignupTable("#snitch-emperium-table tbody", emperiumBottom, (r) => [
       r.name,
       r.class || "—",
       r.joinedDate || "—",
@@ -729,10 +734,32 @@
       mainSignups: countSignupSessions(m.name, GUILD_LEAGUE_EVENTS, "Main Field", start, end),
       subSignups: countSignupSessions(m.name, GUILD_LEAGUE_EVENTS, "Sub Field", start, end),
     }));
-    fillSignupTable("#snitch-signup-table tbody", bottomN(signupRows, 10, (r) => r.mainSignups), (r) => [
+    const signupBottom = bottomN(signupRows, 10, (r) => r.mainSignups);
+    fillSignupTable("#snitch-signup-table tbody", signupBottom, (r) => [
       r.name,
       r.class || "—",
       r.joinedDate || "—",
+      fmtNum(r.mainSignups),
+      fmtNum(r.subSignups),
+    ]);
+
+    // Players who show up in all three bottom-10 lists above.
+    const emperiumByName = new Map(emperiumBottom.map((r) => [r.name, r]));
+    const signupByName = new Map(signupBottom.map((r) => [r.name, r]));
+    const repeatOffenders = guildLeagueBottom
+      .filter((r) => emperiumByName.has(r.name) && signupByName.has(r.name))
+      .map((r) => ({
+        ...r,
+        empAttendances: emperiumByName.get(r.name).attendances,
+        mainSignups: signupByName.get(r.name).mainSignups,
+        subSignups: signupByName.get(r.name).subSignups,
+      }));
+    fillSignupTable("#snitch-repeat-offenders-table tbody", repeatOffenders, (r) => [
+      r.name,
+      r.class || "—",
+      r.joinedDate || "—",
+      fmtNum(r.attendances),
+      fmtNum(r.empAttendances),
       fmtNum(r.mainSignups),
       fmtNum(r.subSignups),
     ]);
