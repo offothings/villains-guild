@@ -681,6 +681,19 @@
       .slice(0, n);
   }
 
+  function topN(rows, n, valueFn) {
+    return rows
+      .slice()
+      .sort((a, b) => valueFn(b) - valueFn(a) || a.name.localeCompare(b.name))
+      .slice(0, n);
+  }
+
+  function countByName(rows) {
+    const counts = new Map();
+    for (const r of rows) counts.set(r.ingame_name, (counts.get(r.ingame_name) || 0) + 1);
+    return counts;
+  }
+
   function renderSnitch() {
     const start = document.getElementById("snitch-start").value;
     const end = document.getElementById("snitch-end").value;
@@ -695,6 +708,7 @@
         "#snitch-guild-league-table tbody",
         "#snitch-emperium-table tbody",
         "#snitch-signup-table tbody",
+        "#snitch-mismatch-table tbody",
         "#snitch-repeat-offenders-table tbody",
       ].forEach((sel) => fillSignupTable(sel, [], () => []));
       return;
@@ -741,6 +755,30 @@
       r.joinedDate || "—",
       fmtNum(r.mainSignups),
       fmtNum(r.subSignups),
+    ]);
+
+    // Sign-up mismatches, across all events (not just Guild League): signed
+    // up but never attended, plus "Late to the Event" — signed up for Main
+    // Field but attended Sub Field. Reuses the same join logic as Signup
+    // Audit, scoped to this tab's own date range.
+    const rangedAttendance = state.attendance.filter((r) => inRange(r.date, start, end));
+    const rangedSignups = state.signups.filter((r) => inRange(r.date, start, end));
+    const { noAttendance, fieldMismatch } = buildSignupAudit(rangedAttendance, rangedSignups);
+    const noAttendanceCounts = countByName(noAttendance);
+    const lateToEventCounts = countByName(
+      fieldMismatch.filter((r) => r.signupField === "Main Field" && r.attendedField === "Sub Field")
+    );
+    const mismatchRows = members.map((m) => {
+      const didntAttend = noAttendanceCounts.get(m.name) || 0;
+      const lateToEvent = lateToEventCounts.get(m.name) || 0;
+      return { ...m, didntAttend, lateToEvent, totalMismatches: didntAttend + lateToEvent };
+    });
+    fillSignupTable("#snitch-mismatch-table tbody", topN(mismatchRows, 10, (r) => r.totalMismatches), (r) => [
+      r.name,
+      r.class || "—",
+      r.joinedDate || "—",
+      fmtNum(r.didntAttend),
+      fmtNum(r.lateToEvent),
     ]);
 
     // Players who show up in all three bottom-10 lists above.

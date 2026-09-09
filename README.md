@@ -22,19 +22,23 @@ tabs of a Google Sheet. Built to run on GitHub Pages.
    players who signed up but never showed, players who showed on a
    different field than they signed up for, and players who showed without
    signing up.
-5. **The Snitch** — four tables against the current roster (name, class,
+5. **The Snitch** — five tables against the current roster (name, class,
    date joined). Three "bottom 10" rankings: lowest combined attendance
    across the two Guild League events, lowest attendance in Emperium
    Overrun, and worst Guild League Main Field sign-up counts (Sub Field
    sign-ups count as zero toward that ranking, though the count is still
-   shown). A fourth table, "Repeat Offenders", lists whoever appears in all
-   three bottom-10 lists at once — since each list is capped at 10, this is
-   the intersection of those three displayed lists, not of the full
-   membership. Shared filters: a From/To range that scopes both attendance
-   and sign-up counts (and snapshots membership as of the To date, same
-   convention as Member List), and a Joined On/Before cutoff that excludes
-   members who joined after that date so new recruits aren't unfairly
-   flagged.
+   shown). A "Sign Up Mismatches" table (top 10, across *all* events, not
+   just Guild League) ranks players by signed-up-but-never-attended plus
+   "Late to the Event" (signed up Main Field, attended Sub Field) — the
+   opposite mismatch (signed up Sub, attended Main) and exact-field matches
+   don't count. Finally, "Repeat Offenders" lists whoever appears in all
+   three bottom-10 rankings (not the mismatches table) at once — since each
+   list is capped at 10, this is the intersection of those three displayed
+   lists, not of the full membership. Shared filters: a From/To range that
+   scopes attendance, sign-up, and mismatch counts alike (and snapshots
+   membership as of the To date, same convention as Member List), and a
+   Joined On/Before cutoff that excludes members who joined after that date
+   so new recruits aren't unfairly flagged.
 
 ## Data source
 
