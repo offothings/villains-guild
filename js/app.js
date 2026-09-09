@@ -708,8 +708,8 @@
         "#snitch-guild-league-table tbody",
         "#snitch-emperium-table tbody",
         "#snitch-signup-table tbody",
-        "#snitch-mismatch-table tbody",
         "#snitch-repeat-offenders-table tbody",
+        "#snitch-mismatch-table tbody",
       ].forEach((sel) => fillSignupTable(sel, [], () => []));
       return;
     }
@@ -757,6 +757,27 @@
       fmtNum(r.subSignups),
     ]);
 
+    // Players who show up in all three bottom-10 lists above.
+    const emperiumByName = new Map(emperiumBottom.map((r) => [r.name, r]));
+    const signupByName = new Map(signupBottom.map((r) => [r.name, r]));
+    const repeatOffenders = guildLeagueBottom
+      .filter((r) => emperiumByName.has(r.name) && signupByName.has(r.name))
+      .map((r) => ({
+        ...r,
+        empAttendances: emperiumByName.get(r.name).attendances,
+        mainSignups: signupByName.get(r.name).mainSignups,
+        subSignups: signupByName.get(r.name).subSignups,
+      }));
+    fillSignupTable("#snitch-repeat-offenders-table tbody", repeatOffenders, (r) => [
+      r.name,
+      r.class || "—",
+      r.joinedDate || "—",
+      fmtNum(r.attendances),
+      fmtNum(r.empAttendances),
+      fmtNum(r.mainSignups),
+      fmtNum(r.subSignups),
+    ]);
+
     // Sign-up mismatches, across all events (not just Guild League): signed
     // up but never attended, plus "Late to the Event" — signed up for Main
     // Field but attended Sub Field. Reuses the same join logic as Signup
@@ -779,27 +800,6 @@
       r.joinedDate || "—",
       fmtNum(r.didntAttend),
       fmtNum(r.lateToEvent),
-    ]);
-
-    // Players who show up in all three bottom-10 lists above.
-    const emperiumByName = new Map(emperiumBottom.map((r) => [r.name, r]));
-    const signupByName = new Map(signupBottom.map((r) => [r.name, r]));
-    const repeatOffenders = guildLeagueBottom
-      .filter((r) => emperiumByName.has(r.name) && signupByName.has(r.name))
-      .map((r) => ({
-        ...r,
-        empAttendances: emperiumByName.get(r.name).attendances,
-        mainSignups: signupByName.get(r.name).mainSignups,
-        subSignups: signupByName.get(r.name).subSignups,
-      }));
-    fillSignupTable("#snitch-repeat-offenders-table tbody", repeatOffenders, (r) => [
-      r.name,
-      r.class || "—",
-      r.joinedDate || "—",
-      fmtNum(r.attendances),
-      fmtNum(r.empAttendances),
-      fmtNum(r.mainSignups),
-      fmtNum(r.subSignups),
     ]);
   }
 
