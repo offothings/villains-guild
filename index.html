@@ -18,6 +18,7 @@
       <button class="tab-btn" data-tab="tab-player">Player Lookup</button>
       <button class="tab-btn" data-tab="tab-members">Member List</button>
       <button class="tab-btn" data-tab="tab-signup">Signup Audit</button>
+      <button class="tab-btn" data-tab="tab-snitch">The Snitch</button>
     </nav>
   </header>
 
@@ -199,6 +200,78 @@
               <th>Event</th>
               <th>Player</th>
               <th>Attended Field</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- The Snitch Tab -->
+    <section id="tab-snitch" class="tab-panel">
+      <div class="filters">
+        <label>From
+          <input type="date" id="snitch-start" />
+        </label>
+        <label>To
+          <input type="date" id="snitch-end" />
+        </label>
+        <label>Joined On/Before
+          <input type="date" id="snitch-joined-cutoff" />
+        </label>
+        <button id="snitch-clear" class="btn-secondary">Clear</button>
+      </div>
+
+      <p id="snitch-summary" class="hint"></p>
+      <p class="hint">
+        Leave From/To blank to count all-time events; membership is snapshotted as of the To date (or the
+        current roster if blank). Joined On/Before excludes members who joined after that date, so brand-new
+        recruits aren't unfairly flagged.
+      </p>
+
+      <h2>Guild League</h2>
+      <p class="hint">Bottom 10 players with the lowest attendance</p>
+      <div class="table-wrap">
+        <table id="snitch-guild-league-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Class</th>
+              <th>Date Joined</th>
+              <th>Attendances</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <h2>Emperium Overrun</h2>
+      <p class="hint">Bottom 10 players with the lowest attendance</p>
+      <div class="table-wrap">
+        <table id="snitch-emperium-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Class</th>
+              <th>Date Joined</th>
+              <th>Attendances</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <h2>Guild League Main Field Sign-ups</h2>
+      <p class="hint">Bottom 10 players with the worst sign-ups done</p>
+      <div class="table-wrap">
+        <table id="snitch-signup-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Class</th>
+              <th>Date Joined</th>
+              <th>Main Field Sign-ups</th>
+              <th>Sub Field Sign-ups</th>
             </tr>
           </thead>
           <tbody></tbody>

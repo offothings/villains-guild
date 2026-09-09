@@ -22,6 +22,15 @@ tabs of a Google Sheet. Built to run on GitHub Pages.
    players who signed up but never showed, players who showed on a
    different field than they signed up for, and players who showed without
    signing up.
+5. **The Snitch** — three "bottom 10" tables against the current roster
+   (name, class, date joined): lowest combined attendance across the two
+   Guild League events, lowest attendance in Emperium Overrun, and worst
+   Guild League Main Field sign-up counts (Sub Field sign-ups count as zero
+   toward that ranking, though the count is still shown). Shared filters: a
+   From/To range that scopes both attendance and sign-up counts (and
+   snapshots membership as of the To date, same convention as Member List),
+   and a Joined On/Before cutoff that excludes members who joined after
+   that date so new recruits aren't unfairly flagged.
 
 ## Data source
 
@@ -58,6 +67,12 @@ matched case-sensitively on `ingame_name`, so keep spelling/casing
 consistent across tabs — this matters especially for the Signup Audit tab,
 since a casing mismatch on `ingame_name` will show up as a false "didn't
 attend" / "didn't sign up" pair.
+
+The Snitch tab matches on exact `event` name — `GUILD_LEAGUE_EVENTS` and
+`EMPERIUM_OVERRUN_EVENT` in `js/app.js` are hardcoded to `"Guild League
+Stellar Clash"`, `"Guild League Vale of Clash"`, and `"Emperium Overrun"`.
+If an event is ever renamed in the sheet, update those constants too, or
+its sessions will silently stop counting toward the rankings.
 
 The URLs the site fetches are built from the spreadsheet ID and each tab's
 `gid` in `js/app.js` (`SPREADSHEET_ID`, `ATTENDANCE_GID`, `ROSTER_GID`,

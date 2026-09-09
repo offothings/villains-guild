@@ -16,6 +16,10 @@
   const ROSTER_GID = "108271403";
   const SIGNUP_GID = "311091534";
 
+  // Event names must match the sheet's "event" column exactly.
+  const GUILD_LEAGUE_EVENTS = ["Guild League Stellar Clash", "Guild League Vale of Clash"];
+  const EMPERIUM_OVERRUN_EVENT = "Emperium Overrun";
+
   function sheetCSVUrl(gid) {
     return "https://docs.google.com/spreadsheets/d/" + SPREADSHEET_ID + "/export?format=csv&gid=" + gid;
   }
@@ -594,6 +598,146 @@
     }
   }
 
+  // ---------- The Snitch tab ----------
+
+  function initSnitchTab() {
+    const startInput = document.getElementById("snitch-start");
+    const endInput = document.getElementById("snitch-end");
+    const joinedCutoffInput = document.getElementById("snitch-joined-cutoff");
+    const clearBtn = document.getElementById("snitch-clear");
+
+    const allDates = state.rosterEventDatesSorted.concat(state.attendance.map((r) => r.date)).sort();
+    if (allDates.length) {
+      startInput.min = endInput.min = allDates[0];
+      startInput.max = endInput.max = allDates[allDates.length - 1];
+    }
+    if (state.rosterEventDatesSorted.length) {
+      joinedCutoffInput.min = state.rosterEventDatesSorted[0];
+      joinedCutoffInput.max = state.rosterEventDatesSorted[state.rosterEventDatesSorted.length - 1];
+    }
+
+    startInput.addEventListener("change", renderSnitch);
+    endInput.addEventListener("change", renderSnitch);
+    joinedCutoffInput.addEventListener("change", renderSnitch);
+    clearBtn.addEventListener("click", () => {
+      startInput.value = "";
+      endInput.value = "";
+      joinedCutoffInput.value = "";
+      renderSnitch();
+    });
+
+    renderSnitch();
+  }
+
+  // Base member list for The Snitch's tables: roster snapshotted as of the
+  // event range's end date (or the current roster if no range is set,
+  // matching Member List's convention), limited to members who joined on
+  // or before the cutoff when one is set.
+  function getSnitchMembers(end, joinedCutoff) {
+    const snapshotDate =
+      end || (state.rosterEventDatesSorted.length
+        ? state.rosterEventDatesSorted[state.rosterEventDatesSorted.length - 1]
+        : "");
+    const roster = getRosterAsOf(snapshotDate);
+    if (!roster) return null;
+    return Array.from(roster.entries())
+      .filter(([, info]) => !joinedCutoff || info.joinedDate <= joinedCutoff)
+      .map(([name, info]) => ({ name, class: info.class, joinedDate: info.joinedDate }));
+  }
+
+  // Distinct sessions (date + event) a player attended among eventNames,
+  // within the date range.
+  function countAttendedSessions(name, eventNames, start, end) {
+    const keys = new Set();
+    for (const r of state.attendance) {
+      if (r.ingame_name === name && eventNames.includes(r.event) && inRange(r.date, start, end)) {
+        keys.add(sessionKey(r));
+      }
+    }
+    return keys.size;
+  }
+
+  // Distinct sessions (date + event) a player signed up for among
+  // eventNames on the given field, within the date range.
+  function countSignupSessions(name, eventNames, field, start, end) {
+    const keys = new Set();
+    for (const r of state.signups) {
+      if (
+        r.ingame_name === name &&
+        eventNames.includes(r.event) &&
+        r.field === field &&
+        inRange(r.date, start, end)
+      ) {
+        keys.add(sessionKey(r));
+      }
+    }
+    return keys.size;
+  }
+
+  function bottomN(rows, n, valueFn) {
+    return rows
+      .slice()
+      .sort((a, b) => valueFn(a) - valueFn(b) || a.name.localeCompare(b.name))
+      .slice(0, n);
+  }
+
+  function renderSnitch() {
+    const start = document.getElementById("snitch-start").value;
+    const end = document.getElementById("snitch-end").value;
+    const joinedCutoff = document.getElementById("snitch-joined-cutoff").value;
+
+    const members = getSnitchMembers(end, joinedCutoff);
+    const summaryEl = document.getElementById("snitch-summary");
+
+    if (!members) {
+      summaryEl.textContent = "No roster data available.";
+      ["#snitch-guild-league-table tbody", "#snitch-emperium-table tbody", "#snitch-signup-table tbody"].forEach(
+        (sel) => fillSignupTable(sel, [], () => [])
+      );
+      return;
+    }
+
+    const summary = [members.length + " eligible member" + (members.length === 1 ? "" : "s")];
+    if (start && end) summary.push("events counted " + start + " → " + end);
+    if (joinedCutoff) summary.push("joined on/before " + joinedCutoff);
+    summaryEl.textContent = summary.join(" — ");
+
+    const guildLeagueRows = members.map((m) => ({
+      ...m,
+      attendances: countAttendedSessions(m.name, GUILD_LEAGUE_EVENTS, start, end),
+    }));
+    fillSignupTable("#snitch-guild-league-table tbody", bottomN(guildLeagueRows, 10, (r) => r.attendances), (r) => [
+      r.name,
+      r.class || "—",
+      r.joinedDate || "—",
+      fmtNum(r.attendances),
+    ]);
+
+    const emperiumRows = members.map((m) => ({
+      ...m,
+      attendances: countAttendedSessions(m.name, [EMPERIUM_OVERRUN_EVENT], start, end),
+    }));
+    fillSignupTable("#snitch-emperium-table tbody", bottomN(emperiumRows, 10, (r) => r.attendances), (r) => [
+      r.name,
+      r.class || "—",
+      r.joinedDate || "—",
+      fmtNum(r.attendances),
+    ]);
+
+    const signupRows = members.map((m) => ({
+      ...m,
+      mainSignups: countSignupSessions(m.name, GUILD_LEAGUE_EVENTS, "Main Field", start, end),
+      subSignups: countSignupSessions(m.name, GUILD_LEAGUE_EVENTS, "Sub Field", start, end),
+    }));
+    fillSignupTable("#snitch-signup-table tbody", bottomN(signupRows, 10, (r) => r.mainSignups), (r) => [
+      r.name,
+      r.class || "—",
+      r.joinedDate || "—",
+      fmtNum(r.mainSignups),
+      fmtNum(r.subSignups),
+    ]);
+  }
+
   // ---------- Utilities ----------
 
   function escapeHTML(str) {
@@ -646,6 +790,7 @@
       initPlayerTab();
       initMembersTab();
       initSignupTab();
+      initSnitchTab();
     } catch (err) {
       console.error(err);
       showError(
