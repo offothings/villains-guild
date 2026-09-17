@@ -31,6 +31,10 @@
   const fmtPct = (n) => (Number.isFinite(n) ? (n * 100).toFixed(1) + "%" : "—");
   const fmtNum = (n) => (Number.isFinite(n) ? n.toLocaleString() : "—");
 
+  // Swaps in a non-breaking hyphen so "YYYY-MM-DD" never line-breaks
+  // mid-string when a table's columns get narrow.
+  const fmtDate = (d) => (typeof d === "string" ? d.replace(/-/g, "‑") : d);
+
   // Blank cells parse to "" (not undefined) from the CSV, and must be kept
   // as null (not 0) so callers can tell "not tracked for this row" apart
   // from "tracked, and zero".
@@ -277,7 +281,7 @@
         const combat = formatCombatTotals(s.combat);
         const tr = document.createElement("tr");
         tr.innerHTML =
-          "<td>" + escapeHTML(s.date) + "</td>" +
+          "<td>" + escapeHTML(fmtDate(s.date)) + "</td>" +
           "<td>" + escapeHTML(s.event) + "</td>" +
           "<td>" + fmtNum(s.attendees.size) + (s.rosterSize ? " / " + fmtNum(s.rosterSize) : "") + "</td>" +
           "<td>" + fmtPct(s.pct) + "</td>" +
@@ -447,7 +451,7 @@
       const combat = combatStats(r);
       const tr = document.createElement("tr");
       tr.innerHTML =
-        "<td>" + escapeHTML(r.date) + "</td>" +
+        "<td>" + escapeHTML(fmtDate(r.date)) + "</td>" +
         "<td>" + escapeHTML(r.event) + "</td>" +
         "<td>" + escapeHTML(r.field) + "</td>" +
         "<td>" + fmtStat(combat.sTablets) + "</td>" +
@@ -572,9 +576,9 @@
       tr.innerHTML =
         "<td>" + escapeHTML(r.name) + "</td>" +
         "<td>" + escapeHTML(r.class || "—") + "</td>" +
-        "<td>" + escapeHTML(r.joinedDate || "—") + "</td>" +
+        "<td>" + escapeHTML(fmtDate(r.joinedDate || "—")) + "</td>" +
         "<td>" + fmtNum(r.sessions) + "</td>" +
-        "<td>" + escapeHTML(r.lastAttended) + "</td>";
+        "<td>" + escapeHTML(fmtDate(r.lastAttended)) + "</td>";
       tbody.appendChild(tr);
     }
   }
@@ -663,20 +667,20 @@
     addStatCard(stats, "Attended, No Sign-up", fmtNum(noSignup.length));
 
     fillSignupTable("#signup-no-attendance-table tbody", noAttendance, (r) => [
-      r.date,
+      fmtDate(r.date),
       r.event,
       r.ingame_name,
       r.field,
     ]);
     fillSignupTable("#signup-field-mismatch-table tbody", fieldMismatch, (r) => [
-      r.date,
+      fmtDate(r.date),
       r.event,
       r.ingame_name,
       r.signupField,
       r.attendedField,
     ]);
     fillSignupTable("#signup-no-signup-table tbody", noSignup, (r) => [
-      r.date,
+      fmtDate(r.date),
       r.event,
       r.ingame_name,
       r.field,
@@ -829,7 +833,7 @@
     fillSignupTable("#snitch-guild-league-table tbody", guildLeagueBottom, (r) => [
       r.name,
       r.class || "—",
-      r.joinedDate || "—",
+      fmtDate(r.joinedDate || "—"),
       fmtNum(r.attendances),
     ]);
 
@@ -841,7 +845,7 @@
     fillSignupTable("#snitch-emperium-table tbody", emperiumBottom, (r) => [
       r.name,
       r.class || "—",
-      r.joinedDate || "—",
+      fmtDate(r.joinedDate || "—"),
       fmtNum(r.attendances),
     ]);
 
@@ -854,7 +858,7 @@
     fillSignupTable("#snitch-signup-table tbody", signupBottom, (r) => [
       r.name,
       r.class || "—",
-      r.joinedDate || "—",
+      fmtDate(r.joinedDate || "—"),
       fmtNum(r.mainSignups),
       fmtNum(r.subSignups),
     ]);
@@ -873,7 +877,7 @@
     fillSignupTable("#snitch-repeat-offenders-table tbody", repeatOffenders, (r) => [
       r.name,
       r.class || "—",
-      r.joinedDate || "—",
+      fmtDate(r.joinedDate || "—"),
       fmtNum(r.attendances),
       fmtNum(r.empAttendances),
       fmtNum(r.mainSignups),
@@ -899,7 +903,7 @@
     fillSignupTable("#snitch-mismatch-table tbody", topN(mismatchRows, 10, (r) => r.totalMismatches), (r) => [
       r.name,
       r.class || "—",
-      r.joinedDate || "—",
+      fmtDate(r.joinedDate || "—"),
       fmtNum(r.didntAttend),
       fmtNum(r.lateToEvent),
     ]);

@@ -261,6 +261,7 @@ h2 {
 
 table {
   width: 100%;
+  table-layout: fixed;
   border-collapse: collapse;
   font-size: 0.9rem;
 }
@@ -268,21 +269,21 @@ table {
 thead th {
   background: var(--bg-panel-alt);
   color: var(--gold-dim);
-  text-align: left;
+  text-align: center;
   padding: 0.65rem 0.9rem;
   font-family: "Cinzel", serif;
   font-weight: 500;
   font-size: 0.8rem;
   letter-spacing: 0.03em;
   border-bottom: 1px solid var(--border);
-  white-space: nowrap;
+  word-wrap: break-word;
 }
 
 tbody td {
   padding: 0.6rem 0.9rem;
   border-bottom: 1px solid var(--border);
   color: var(--text);
-  white-space: nowrap;
+  word-wrap: break-word;
 }
 
 tbody tr:last-child td {
@@ -291,6 +292,34 @@ tbody tr:last-child td {
 
 tbody tr:hover {
   background: rgba(212, 175, 55, 0.06);
+}
+
+/* These three tables gained several narrow stat columns; without a wider
+   share for Date/Event/Player, equal column widths crowd them onto several
+   wrapped lines while stat columns sit mostly empty. */
+#overview-table th:nth-child(1),
+#overview-table td:nth-child(1),
+#player-table th:nth-child(1),
+#player-table td:nth-child(1) {
+  width: 11%;
+  white-space: nowrap;
+}
+
+#overview-table th:nth-child(2),
+#overview-table td:nth-child(2),
+#player-table th:nth-child(2),
+#player-table td:nth-child(2) {
+  width: 16%;
+}
+
+#overview-leaderboard th:nth-child(1),
+#overview-leaderboard td:nth-child(1) {
+  width: 4%;
+}
+
+#overview-leaderboard th:nth-child(2),
+#overview-leaderboard td:nth-child(2) {
+  width: 14%;
 }
 
 .empty {
