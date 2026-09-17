@@ -2,7 +2,9 @@
   "use strict";
 
   const state = {
-    attendance: [], // { date, event, field, ingame_name, points }
+    // sOrTablet/aOrMonster/bCaptures/kills/assists/deaths are Guild-League
+    // only and null for other events — see combatStats().
+    attendance: [], // { date, event, field, ingame_name, points, sOrTablet, aOrMonster, bCaptures, kills, assists, deaths }
     rosterEvents: [], // { date, name, class, log } sorted ascending by date, joined/left log
     rosterEventDatesSorted: [], // unique ascending dates
     signups: [], // { date, event, field, ingame_name }
@@ -17,7 +19,9 @@
   const SIGNUP_GID = "311091534";
 
   // Event names must match the sheet's "event" column exactly.
-  const GUILD_LEAGUE_EVENTS = ["Guild League Stellar Clash", "Guild League Vale of Clash"];
+  const EVENT_STELLAR_CLASH = "Guild League Stellar Clash";
+  const EVENT_VALE_OF_CLASH = "Guild League Vale of Clash";
+  const GUILD_LEAGUE_EVENTS = [EVENT_STELLAR_CLASH, EVENT_VALE_OF_CLASH];
   const EMPERIUM_OVERRUN_EVENT = "Emperium Overrun";
 
   function sheetCSVUrl(gid) {
@@ -26,6 +30,15 @@
 
   const fmtPct = (n) => (Number.isFinite(n) ? (n * 100).toFixed(1) + "%" : "—");
   const fmtNum = (n) => (Number.isFinite(n) ? n.toLocaleString() : "—");
+
+  // Blank cells parse to "" (not undefined) from the CSV, and must be kept
+  // as null (not 0) so callers can tell "not tracked for this row" apart
+  // from "tracked, and zero".
+  function parseOptionalNum(v) {
+    if (v === undefined || v === "") return null;
+    const n = Number(v);
+    return Number.isFinite(n) ? n : null;
+  }
 
   async function loadCSV(url) {
     const res = await fetch(url, { cache: "no-store" });
@@ -71,6 +84,75 @@
     return row.date + "|||" + row.event;
   }
 
+  // Combat stats share sheet columns whose meaning depends on which Guild
+  // League event a row belongs to: Vale of Clash tracks S/A/B tablets
+  // separately; Stellar Clash tracks one combined "tablets captured" total
+  // (shown under the S Tablets column, reusing the same sheet column) plus
+  // monsters killed (B is unused for Stellar Clash). Other events don't
+  // populate any of these columns at all — returned as null, not 0, so
+  // callers can tell "not tracked" apart from "tracked, zero".
+  function combatStats(row) {
+    if (row.event === EVENT_VALE_OF_CLASH) {
+      return { sTablets: row.sOrTablet, aTablets: row.aOrMonster, bTablets: row.bCaptures, monstersKilled: null };
+    }
+    if (row.event === EVENT_STELLAR_CLASH) {
+      return { sTablets: row.sOrTablet, aTablets: null, bTablets: null, monstersKilled: row.aOrMonster };
+    }
+    return { sTablets: null, aTablets: null, bTablets: null, monstersKilled: null };
+  }
+
+  function fmtStat(n) {
+    return n === null || n === undefined ? "—" : fmtNum(n);
+  }
+
+  // Kills/assists/deaths are Guild-League-only, blank elsewhere.
+  function formatKAD(row) {
+    if (!GUILD_LEAGUE_EVENTS.includes(row.event)) return "—";
+    return fmtNum(row.kills || 0) + "/" + fmtNum(row.assists || 0) + "/" + fmtNum(row.deaths || 0);
+  }
+
+  function newCombatTotals() {
+    return {
+      sTablets: 0,
+      aTablets: 0,
+      bTablets: 0,
+      monstersKilled: 0,
+      kills: 0,
+      assists: 0,
+      deaths: 0,
+      hasVale: false,
+      hasStellar: false,
+    };
+  }
+
+  function accumulateCombatStats(totals, row) {
+    if (row.event === EVENT_VALE_OF_CLASH) totals.hasVale = true;
+    if (row.event === EVENT_STELLAR_CLASH) totals.hasStellar = true;
+    const stats = combatStats(row);
+    if (stats.sTablets !== null) totals.sTablets += stats.sTablets;
+    if (stats.aTablets !== null) totals.aTablets += stats.aTablets;
+    if (stats.bTablets !== null) totals.bTablets += stats.bTablets;
+    if (stats.monstersKilled !== null) totals.monstersKilled += stats.monstersKilled;
+    if (GUILD_LEAGUE_EVENTS.includes(row.event)) {
+      totals.kills += row.kills || 0;
+      totals.assists += row.assists || 0;
+      totals.deaths += row.deaths || 0;
+    }
+  }
+
+  // Formats accumulated totals for display, showing "—" for stats that were
+  // never tracked at all (as opposed to tracked-and-zero).
+  function formatCombatTotals(totals) {
+    const trackedTablets = totals.hasVale || totals.hasStellar;
+    return {
+      sTablets: trackedTablets ? fmtNum(totals.sTablets) : "—",
+      aTablets: totals.hasVale ? fmtNum(totals.aTablets) : "—",
+      bTablets: totals.hasVale ? fmtNum(totals.bTablets) : "—",
+      monstersKilled: totals.hasStellar ? fmtNum(totals.monstersKilled) : "—",
+      kad: trackedTablets ? fmtNum(totals.kills) + "/" + fmtNum(totals.assists) + "/" + fmtNum(totals.deaths) : "—",
+    };
+  }
+
   function buildSessions(rows) {
     const sessions = new Map();
     for (const row of rows) {
@@ -81,11 +163,13 @@
           event: row.event,
           attendees: new Set(),
           totalPoints: 0,
+          combat: newCombatTotals(),
         });
       }
       const s = sessions.get(key);
       s.attendees.add(row.ingame_name);
       s.totalPoints += row.points;
+      accumulateCombatStats(s.combat, row);
     }
     return Array.from(sessions.values()).sort((a, b) => (a.date < b.date ? 1 : -1));
   }
@@ -160,18 +244,19 @@
     const overallPct = pctDenominator > 0 ? pctNumerator / pctDenominator : NaN;
 
     // Leaderboard
-    const leaderboard = new Map(); // name -> { sessions: Set(key), points }
+    const leaderboard = new Map(); // name -> { sessions: Set(key), points, combat }
     for (const row of filtered) {
       const key = sessionKey(row);
       if (!leaderboard.has(row.ingame_name)) {
-        leaderboard.set(row.ingame_name, { sessions: new Set(), points: 0 });
+        leaderboard.set(row.ingame_name, { sessions: new Set(), points: 0, combat: newCombatTotals() });
       }
       const l = leaderboard.get(row.ingame_name);
       l.sessions.add(key);
       l.points += row.points;
+      accumulateCombatStats(l.combat, row);
     }
     const leaderboardRows = Array.from(leaderboard.entries())
-      .map(([name, v]) => ({ name, sessions: v.sessions.size, points: v.points }))
+      .map(([name, v]) => ({ name, sessions: v.sessions.size, points: v.points, combat: formatCombatTotals(v.combat) }))
       .sort((a, b) => b.sessions - a.sessions || b.points - a.points);
 
     // Stat cards
@@ -186,15 +271,21 @@
     const tbody = document.querySelector("#overview-table tbody");
     tbody.innerHTML = "";
     if (sessionRows.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="5" class="empty">No sessions in this range.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="10" class="empty">No sessions in this range.</td></tr>';
     } else {
       for (const s of sessionRows) {
+        const combat = formatCombatTotals(s.combat);
         const tr = document.createElement("tr");
         tr.innerHTML =
           "<td>" + escapeHTML(s.date) + "</td>" +
           "<td>" + escapeHTML(s.event) + "</td>" +
           "<td>" + fmtNum(s.attendees.size) + (s.rosterSize ? " / " + fmtNum(s.rosterSize) : "") + "</td>" +
           "<td>" + fmtPct(s.pct) + "</td>" +
+          "<td>" + combat.sTablets + "</td>" +
+          "<td>" + combat.aTablets + "</td>" +
+          "<td>" + combat.bTablets + "</td>" +
+          "<td>" + combat.monstersKilled + "</td>" +
+          "<td>" + combat.kad + "</td>" +
           "<td>" + fmtNum(s.totalPoints) + "</td>";
         tbody.appendChild(tr);
       }
@@ -204,7 +295,7 @@
     const lbBody = document.querySelector("#overview-leaderboard tbody");
     lbBody.innerHTML = "";
     if (leaderboardRows.length === 0) {
-      lbBody.innerHTML = '<tr><td colspan="3" class="empty">No data in this range.</td></tr>';
+      lbBody.innerHTML = '<tr><td colspan="9" class="empty">No data in this range.</td></tr>';
     } else {
       leaderboardRows.slice(0, 20).forEach((row, idx) => {
         const tr = document.createElement("tr");
@@ -212,6 +303,11 @@
           "<td>" + (idx + 1) + "</td>" +
           "<td>" + escapeHTML(row.name) + "</td>" +
           "<td>" + fmtNum(row.sessions) + "</td>" +
+          "<td>" + row.combat.sTablets + "</td>" +
+          "<td>" + row.combat.aTablets + "</td>" +
+          "<td>" + row.combat.bTablets + "</td>" +
+          "<td>" + row.combat.monstersKilled + "</td>" +
+          "<td>" + row.combat.kad + "</td>" +
           "<td>" + fmtNum(row.points) + "</td>";
         lbBody.appendChild(tr);
       });
@@ -313,7 +409,7 @@
 
     if (!name) {
       stats.innerHTML = '<p class="hint">Type or pick a player name to see their stats.</p>';
-      tbody.innerHTML = '<tr><td colspan="4" class="empty">No player selected.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="9" class="empty">No player selected.</td></tr>';
       return;
     }
 
@@ -330,7 +426,7 @@
         "beforeend",
         '<p class="hint">No attendance found for "' + escapeHTML(name) + '" in this range.</p>'
       );
-      tbody.innerHTML = '<tr><td colspan="4" class="empty">No records.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="9" class="empty">No records.</td></tr>';
       return;
     }
 
@@ -348,11 +444,17 @@
     addStatCard(stats, "First → Last", firstDate + " → " + lastDate);
 
     for (const r of rows) {
+      const combat = combatStats(r);
       const tr = document.createElement("tr");
       tr.innerHTML =
         "<td>" + escapeHTML(r.date) + "</td>" +
         "<td>" + escapeHTML(r.event) + "</td>" +
         "<td>" + escapeHTML(r.field) + "</td>" +
+        "<td>" + fmtStat(combat.sTablets) + "</td>" +
+        "<td>" + fmtStat(combat.aTablets) + "</td>" +
+        "<td>" + fmtStat(combat.bTablets) + "</td>" +
+        "<td>" + fmtStat(combat.monstersKilled) + "</td>" +
+        "<td>" + formatKAD(r) + "</td>" +
         "<td>" + fmtNum(r.points) + "</td>";
       tbody.appendChild(tr);
     }
@@ -836,6 +938,12 @@
         field: r.field,
         ingame_name: r.ingame_name,
         points: Number(r.points) || 0,
+        sOrTablet: parseOptionalNum(r.S_or_Tablet_captures),
+        aOrMonster: parseOptionalNum(r.A_captures_Monster_kills),
+        bCaptures: parseOptionalNum(r.B_captures),
+        kills: parseOptionalNum(r.kills),
+        assists: parseOptionalNum(r.assists),
+        deaths: parseOptionalNum(r.deaths),
       }));
 
       state.rosterEvents = rosterRaw

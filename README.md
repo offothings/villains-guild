@@ -7,10 +7,11 @@ tabs of a Google Sheet. Built to run on GitHub Pages.
 
 1. **Guild Overview** — date-range filter over all sessions: stats (session
    count, unique players, avg attendees/session, overall attendance %), a
-   per-session table, and a leaderboard.
+   per-session table (attendance, Guild League combat stats, points), and a
+   leaderboard (same, totaled per player).
 2. **Player Lookup** — filter by player name (with a single-click searchable
    dropdown) and a date range: that player's date joined, stats, and their
-   full attendance history.
+   full attendance history including Guild League combat stats.
 3. **Member List** — the current roster (name, class, date joined, all-time
    session count, last-attended date) with optional filters: a From/To
    range that scopes the session count to that window (and snapshots
@@ -50,8 +51,26 @@ local copy of the data in this repo.
 
 - **Attendance** tab (gid `0`) — one row per player per event:
   ```
-  date, event, field, ingame_name, points
+  date, event, field, ingame_name, S_or_Tablet_captures, A_captures_Monster_kills, B_captures, kills, assists, deaths, points
   ```
+  `field` only applies to the two Guild League events. Columns 5-10 are
+  Guild-League-only and left blank for other events (Emperium Overrun,
+  etc.) — `points` is the one column that's always populated, same as
+  before. Their meaning depends on which Guild League event the row is for:
+  - **Vale of Clash**: `S_or_Tablet_captures` / `A_captures_Monster_kills` /
+    `B_captures` are S/A/B tablets captured respectively; `kills` / `assists`
+    / `deaths` as named.
+  - **Stellar Clash**: `S_or_Tablet_captures` is a single "tablets captured"
+    total (shown under the site's "S Tablets Captured" column, reusing the
+    same sheet column as Vale of Clash's S tablets); `A_captures_Monster_kills`
+    is monsters killed (shown under "Monsters Killed" instead); `B_captures`
+    is unused; `kills` / `assists` / `deaths` as named.
+
+  The site derives five display columns from this — S/A/B Tablets Captured,
+  Monsters Killed, and a combined K/A/D — shown wherever attendance rows or
+  totals appear (Guild Overview's session table and leaderboard, Player
+  Lookup's attendance history). A dash means the stat was never tracked for
+  that row/event; `0` means it was tracked and came out zero.
 - **Roster** tab (gid `108271403`) — a **join/leave log**: one row per
   membership change.
   ```
@@ -81,7 +100,11 @@ The Snitch tab matches on exact `event` name — `GUILD_LEAGUE_EVENTS` and
 `EMPERIUM_OVERRUN_EVENT` in `js/app.js` are hardcoded to `"Guild League
 Stellar Clash"`, `"Guild League Vale of Clash"`, and `"Emperium Overrun"`.
 If an event is ever renamed in the sheet, update those constants too, or
-its sessions will silently stop counting toward the rankings.
+its sessions will silently stop counting toward the rankings. The combat
+stat columns (`combatStats()` in `js/app.js`) also key off those same two
+Guild League event names to decide how to interpret columns 5-10 — a
+rename needs updating there too, or those columns will start showing "—"
+for that event.
 
 The URLs the site fetches are built from the spreadsheet ID and each tab's
 `gid` in `js/app.js` (`SPREADSHEET_ID`, `ATTENDANCE_GID`, `ROSTER_GID`,
