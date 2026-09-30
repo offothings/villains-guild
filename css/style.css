@@ -358,3 +358,9 @@ tbody tr:hover {
 #absence-table td:nth-child(5) {
   text-align: left;
 }
+
+#absence-table th:nth-child(1), #absence-table td:nth-child(1) { width: 14%; }
+#absence-table th:nth-child(2), #absence-table td:nth-child(2) { width: 11%; }
+#absence-table th:nth-child(3), #absence-table td:nth-child(3) { width: 20%; }
+#absence-table th:nth-child(4), #absence-table td:nth-child(4) { width: 20%; }
+#absence-table th:nth-child(5), #absence-table td:nth-child(5) { width: 35%; }
