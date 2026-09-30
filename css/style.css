@@ -362,10 +362,10 @@ tbody tr:hover {
 }
 
 #absence-table th:nth-child(1), #absence-table td:nth-child(1) { width: 10%; }
-#absence-table th:nth-child(2), #absence-table td:nth-child(2) { width: 10%; }
+#absence-table th:nth-child(2), #absence-table td:nth-child(2) { width: 15%; }
 #absence-table th:nth-child(3), #absence-table td:nth-child(3) { width: 20%; }
 #absence-table th:nth-child(4), #absence-table td:nth-child(4) { width: 20%; }
-#absence-table th:nth-child(5), #absence-table td:nth-child(5) { width: 40%; }
+#absence-table th:nth-child(5), #absence-table td:nth-child(5) { width: 35%; }
 
 /* Phones only — nothing here applies above 700px wide. Tables keep a
    minimum width and scroll sideways inside their wrapper rather than
@@ -395,11 +395,11 @@ tbody tr:hover {
   table { min-width: 760px; font-size: 0.75rem; }
   #overview-table, #player-table { min-width: 900px; }
   #absence-table { min-width: 720px; }
-  #absence-table th:nth-child(1), #absence-table td:nth-child(1),
-  #absence-table th:nth-child(2), #absence-table td:nth-child(2) { width: 10%; }
+  #absence-table th:nth-child(1), #absence-table td:nth-child(1) { width: 10%; }
+  #absence-table th:nth-child(2), #absence-table td:nth-child(2) { width: 15%; }
   #absence-table th:nth-child(3), #absence-table td:nth-child(3),
   #absence-table th:nth-child(4), #absence-table td:nth-child(4) { width: 20%; }
-  #absence-table th:nth-child(5), #absence-table td:nth-child(5) { width: 40%; }
+  #absence-table th:nth-child(5), #absence-table td:nth-child(5) { width: 35%; }
   thead th { font-size: 0.65rem; padding: 0.5rem 0.4rem; }
   tbody td { padding: 0.45rem 0.4rem; }
 }
