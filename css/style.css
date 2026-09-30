@@ -395,11 +395,11 @@ tbody tr:hover {
   table { min-width: 760px; font-size: 0.75rem; }
   #overview-table, #player-table { min-width: 900px; }
   #absence-table { min-width: 720px; }
-  #absence-table th:nth-child(1), #absence-table td:nth-child(1) { width: 14%; }
-  #absence-table th:nth-child(2), #absence-table td:nth-child(2) { width: 11%; }
+  #absence-table th:nth-child(1), #absence-table td:nth-child(1),
+  #absence-table th:nth-child(2), #absence-table td:nth-child(2) { width: 10%; }
   #absence-table th:nth-child(3), #absence-table td:nth-child(3),
-  #absence-table th:nth-child(4), #absence-table td:nth-child(4) { width: 18%; }
-  #absence-table th:nth-child(5), #absence-table td:nth-child(5) { width: 39%; }
+  #absence-table th:nth-child(4), #absence-table td:nth-child(4) { width: 20%; }
+  #absence-table th:nth-child(5), #absence-table td:nth-child(5) { width: 40%; }
   thead th { font-size: 0.65rem; padding: 0.5rem 0.4rem; }
   tbody td { padding: 0.45rem 0.4rem; }
 }
