@@ -361,11 +361,11 @@ tbody tr:hover {
   text-align: left;
 }
 
-#absence-table th:nth-child(1), #absence-table td:nth-child(1) { width: 9%; }
-#absence-table th:nth-child(2), #absence-table td:nth-child(2) { width: 6%; }
-#absence-table th:nth-child(3), #absence-table td:nth-child(3) { width: 15%; }
-#absence-table th:nth-child(4), #absence-table td:nth-child(4) { width: 15%; }
-#absence-table th:nth-child(5), #absence-table td:nth-child(5) { width: 55%; }
+#absence-table th:nth-child(1), #absence-table td:nth-child(1) { width: 10%; }
+#absence-table th:nth-child(2), #absence-table td:nth-child(2) { width: 10%; }
+#absence-table th:nth-child(3), #absence-table td:nth-child(3) { width: 20%; }
+#absence-table th:nth-child(4), #absence-table td:nth-child(4) { width: 20%; }
+#absence-table th:nth-child(5), #absence-table td:nth-child(5) { width: 40%; }
 
 /* Phones only — nothing here applies above 700px wide. Tables keep a
    minimum width and scroll sideways inside their wrapper rather than
