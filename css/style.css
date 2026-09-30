@@ -355,6 +355,9 @@ tbody tr:hover {
 
 
 
+#absence-table th:nth-child(3),
+#absence-table th:nth-child(4),
+#absence-table th:nth-child(5),
 #absence-table td:nth-child(3),
 #absence-table td:nth-child(4),
 #absence-table td:nth-child(5) {
