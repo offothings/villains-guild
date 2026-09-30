@@ -744,6 +744,13 @@
     return { monday: isoFromLocal(monday), sunday: isoFromLocal(sunday) };
   }
 
+  const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+  function withWeekday(iso) {
+    const [y, m, d] = iso.split("-").map(Number);
+    return WEEKDAYS[new Date(y, m - 1, d).getDay()] + " - " + fmtDate(iso);
+  }
+
   function initAbsenceTab() {
     const dateInput = document.getElementById("absence-date");
     dateInput.value = isoFromLocal(new Date());
@@ -774,8 +781,8 @@
     fillSignupTable("#absence-table tbody", rows, (a) => [
       a.ingame_name,
       a.class || "—",
-      fmtDate(a.dateBegin),
-      fmtDate(a.dateEnd),
+      withWeekday(a.dateBegin),
+      withWeekday(a.dateEnd),
       a.comments || "—",
     ]);
   }
