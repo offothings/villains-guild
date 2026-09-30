@@ -766,9 +766,9 @@
       return;
     }
 
-    // Absent for the whole week: began by Monday and lasts through Sunday.
+    // Any overlap with the week: began by Sunday and ends on/after Monday.
     const rows = state.absences
-      .filter((a) => a.dateBegin && a.dateEnd && a.dateBegin <= monday && a.dateEnd >= sunday)
+      .filter((a) => a.dateBegin && a.dateEnd && a.dateBegin <= sunday && a.dateEnd >= monday)
       .sort((a, b) => a.ingame_name.localeCompare(b.ingame_name));
 
     fillSignupTable("#absence-table tbody", rows, (a) => [

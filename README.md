@@ -43,8 +43,8 @@ tabs of a Google Sheet. Built to run on GitHub Pages.
    so new recruits aren't unfairly flagged.
 
 6. **Absence Report** — pick any date; shows members whose reported
-   absence covers that date's whole week (Monday–Sunday), i.e.
-   `date_begin` <= Monday and `date_end` >= Sunday. Defaults to the
+   absence overlaps that date's week (Monday–Sunday) at all, i.e.
+   `date_begin` <= Sunday and `date_end` >= Monday. Defaults to the
    current week.
 
 ## Data source
