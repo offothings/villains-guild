@@ -19,6 +19,7 @@
       <button class="tab-btn" data-tab="tab-members">Member List</button>
       <button class="tab-btn" data-tab="tab-signup" hidden>Signup Audit</button>
       <button class="tab-btn" data-tab="tab-snitch" hidden>The Snitch</button>
+      <button class="tab-btn" data-tab="tab-absence">Absence Report</button>
     </nav>
   </header>
 
@@ -215,6 +216,32 @@
               <th>Event</th>
               <th>Player</th>
               <th>Attended Field</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Absence Report Tab -->
+    <section id="tab-absence" class="tab-panel">
+      <div class="filters">
+        <label>Week containing
+          <input type="date" id="absence-date" />
+        </label>
+      </div>
+
+      <p id="absence-summary" class="hint"></p>
+
+      <div class="table-wrap">
+        <table id="absence-table">
+          <thead>
+            <tr>
+              <th>In-game name</th>
+              <th>Class</th>
+              <th>Absent from</th>
+              <th>Absent until</th>
+              <th>Comments</th>
             </tr>
           </thead>
           <tbody></tbody>

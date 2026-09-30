@@ -42,6 +42,11 @@ tabs of a Google Sheet. Built to run on GitHub Pages.
    Joined On/Before cutoff that excludes members who joined after that date
    so new recruits aren't unfairly flagged.
 
+6. **Absence Report** — pick any date; shows members whose reported
+   absence covers that date's whole week (Monday–Sunday), i.e.
+   `date_begin` <= Monday and `date_end` >= Sunday. Defaults to the
+   current week.
+
 ## Data source
 
 All three tables live as tabs in one
@@ -89,6 +94,13 @@ local copy of the data in this repo.
   `discord_name` is ignored by the site. `field` is the field the player
   signed up for, compared against their actual attended `field` on the
   Attendance tab.
+
+- **absence_reports** tab — read by sheet name (not gid):
+  ```
+  date_begin, date_end, discord_name, comments, ingame_name, class
+  ```
+  Dates may be `YYYY-MM-DD` or `M/D/YYYY`. If this tab fails to load, only
+  the Absence Report tab is affected.
 
 All three tabs must keep their header row and column order. Values are
 matched case-sensitively on `ingame_name`, so keep spelling/casing

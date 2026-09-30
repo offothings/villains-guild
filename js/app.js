@@ -8,6 +8,8 @@
     rosterEvents: [], // { date, name, class, log } sorted ascending by date, joined/left log
     rosterEventDatesSorted: [], // unique ascending dates
     signups: [], // { date, event, field, ingame_name }
+    absences: [], // { dateBegin, dateEnd, ingame_name, class, comments } (ISO dates)
+    absencesError: "",
   };
 
   // Guild data lives in a Google Sheet (one spreadsheet, one tab per file).
@@ -17,6 +19,8 @@
   const ATTENDANCE_GID = "0";
   const ROSTER_GID = "108271403";
   const SIGNUP_GID = "311091534";
+  // Looked up by sheet name (gviz endpoint) rather than gid.
+  const ABSENCE_SHEET_NAME = "absence_reports";
 
   // Event names must match the sheet's "event" column exactly.
   const EVENT_STELLAR_CLASH = "Guild League Stellar Clash";
@@ -704,6 +708,78 @@
     }
   }
 
+  // ---------- Absence Report tab ----------
+
+  function absenceSheetUrl() {
+    return (
+      "https://docs.google.com/spreadsheets/d/" + SPREADSHEET_ID +
+      "/gviz/tq?tqx=out:csv&sheet=" + encodeURIComponent(ABSENCE_SHEET_NAME)
+    );
+  }
+
+  // Accepts YYYY-MM-DD or M/D/YYYY (how Sheets may render a date cell);
+  // returns ISO YYYY-MM-DD, or "" if unparseable.
+  function toISODate(v) {
+    const s = String(v || "").trim();
+    let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+    if (m) return m[1] + "-" + m[2].padStart(2, "0") + "-" + m[3].padStart(2, "0");
+    m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    if (m) return m[3] + "-" + m[1].padStart(2, "0") + "-" + m[2].padStart(2, "0");
+    return "";
+  }
+
+  function isoFromLocal(d) {
+    return (
+      d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0")
+    );
+  }
+
+  // Weeks run Monday through Sunday.
+  function weekBounds(isoDate) {
+    const [y, m, d] = isoDate.split("-").map(Number);
+    const date = new Date(y, m - 1, d);
+    const sinceMonday = (date.getDay() + 6) % 7;
+    const monday = new Date(y, m - 1, d - sinceMonday);
+    const sunday = new Date(y, m - 1, d - sinceMonday + 6);
+    return { monday: isoFromLocal(monday), sunday: isoFromLocal(sunday) };
+  }
+
+  function initAbsenceTab() {
+    const dateInput = document.getElementById("absence-date");
+    dateInput.value = isoFromLocal(new Date());
+    dateInput.addEventListener("change", renderAbsence);
+    renderAbsence();
+  }
+
+  function renderAbsence() {
+    const dateInput = document.getElementById("absence-date");
+    if (!dateInput.value) dateInput.value = isoFromLocal(new Date());
+    const { monday, sunday } = weekBounds(dateInput.value);
+
+    document.getElementById("absence-summary").textContent =
+      "Showing members absent on week starting on Monday " + monday + " and ending on Sunday " + sunday + ".";
+
+    const tbody = document.querySelector("#absence-table tbody");
+    if (state.absencesError) {
+      tbody.innerHTML =
+        '<tr><td colspan="5" class="empty">' + escapeHTML(state.absencesError) + "</td></tr>";
+      return;
+    }
+
+    // Absent for the whole week: began by Monday and lasts through Sunday.
+    const rows = state.absences
+      .filter((a) => a.dateBegin && a.dateEnd && a.dateBegin <= monday && a.dateEnd >= sunday)
+      .sort((a, b) => a.ingame_name.localeCompare(b.ingame_name));
+
+    fillSignupTable("#absence-table tbody", rows, (a) => [
+      a.ingame_name,
+      a.class || "—",
+      fmtDate(a.dateBegin),
+      fmtDate(a.dateEnd),
+      a.comments || "—",
+    ]);
+  }
+
   // ---------- The Snitch tab ----------
 
   function initSnitchTab() {
@@ -968,6 +1044,26 @@
       initMembersTab();
       initSignupTab();
       initSnitchTab();
+
+      // Loaded separately so a problem with this sheet can't break the
+      // other tabs.
+      try {
+        const absenceRaw = await loadCSV(absenceSheetUrl());
+        if (absenceRaw.length && !("date_begin" in absenceRaw[0])) {
+          throw new Error('missing "date_begin" column');
+        }
+        state.absences = absenceRaw.map((r) => ({
+          dateBegin: toISODate(r.date_begin),
+          dateEnd: toISODate(r.date_end),
+          ingame_name: r.ingame_name || "",
+          class: r.class || "",
+          comments: r.comments || "",
+        }));
+      } catch (err) {
+        console.error(err);
+        state.absencesError = "Couldn't load the absence_reports sheet (" + err.message + ").";
+      }
+      initAbsenceTab();
     } catch (err) {
       console.error(err);
       showError(
