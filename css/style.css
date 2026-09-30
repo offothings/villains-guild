@@ -351,22 +351,10 @@ tbody tr:hover {
   line-height: 1.5;
 }
 
-.site-footer {
-  text-align: center;
-  color: var(--text-dim);
-  font-size: 0.8rem;
-  padding: 1.5rem;
-  border-top: 1px solid var(--border);
-}
 
-.site-footer code {
-  color: var(--gold-dim);
-}
 
-.site-footer a {
-  color: var(--gold-dim);
-}
 
-.site-footer a:hover {
-  color: var(--gold);
+
+#absence-table td:nth-child(5) {
+  text-align: left;
 }
