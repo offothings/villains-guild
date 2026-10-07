@@ -25,8 +25,7 @@
   // Looked up by sheet name (gviz endpoint) rather than gid.
   const ABSENCE_SHEET_NAME = "absence_reports";
   const AUCTION_AUDITS_SHEET_NAME = "auction_audits";
-  // Referred to by both names; whichever tab exists is used.
-  const PENDING_AUDITS_SHEET_NAMES = ["audits_pending", "pending_audits"];
+  const PENDING_AUDITS_SHEET_NAME = "audits_pending";
 
   // Event names must match the sheet's "event" column exactly.
   const EVENT_STELLAR_CLASH = "Guild League Stellar Clash";
@@ -1190,7 +1189,7 @@
         const cols = ["event_date", "event", "ingame_name", "status"];
         const [auctionRaw, pendingRaw] = await Promise.all([
           loadNamedSheet([AUCTION_AUDITS_SHEET_NAME], cols),
-          loadNamedSheet(PENDING_AUDITS_SHEET_NAMES, cols),
+          loadNamedSheet([PENDING_AUDITS_SHEET_NAME], cols),
         ]);
         state.auctionAudits = auctionRaw.map(toAudit).filter((r) => r.ingame_name);
         state.pendingAudits = pendingRaw.map(toAudit).filter((r) => r.ingame_name);

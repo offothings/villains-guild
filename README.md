@@ -113,8 +113,7 @@ local copy of the data in this repo.
   ```
   event_date, event, discord_name, status, ingame_name
   ```
-- **audits_pending** tab (also accepted as **pending_audits**) — read by
-  sheet name:
+- **audits_pending** tab — read by sheet name:
   ```
   ingame_name, event_date, event, status
   ```
