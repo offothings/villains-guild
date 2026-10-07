@@ -115,8 +115,12 @@ local copy of the data in this repo.
   ```
 - **audits_pending** tab — read by sheet name:
   ```
-  ingame_name, event_date, event, status
+  ingame_name, event_date, event, status, discord_id
   ```
+  `discord_id` powers the "Copy Discord ID" buttons. Format that column as
+  **Plain text** in Sheets: Discord IDs are 17-19 digits, and a number cell
+  rounds them (e.g. `1.23E+17`). Such rounded or blank IDs show a disabled
+  "No Discord ID" button rather than copying a wrong ID.
   Both audit tabs load independently of the rest; if either fails, only
   the Auction Audit Tracker shows an error.
 

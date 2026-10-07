@@ -719,8 +719,10 @@
     }
     for (const row of rows) {
       const tr = document.createElement("tr");
+      // A cell is plain text (escaped) unless given as { html } for markup
+      // the caller has already built safely.
       tr.innerHTML = toCells(row)
-        .map((c) => "<td>" + escapeHTML(c) + "</td>")
+        .map((c) => "<td>" + (c && typeof c === "object" ? c.html : escapeHTML(c)) + "</td>")
         .join("");
       tbody.appendChild(tr);
     }
@@ -830,7 +832,43 @@
     return String(s || "").trim().toLowerCase().replace(/_/g, " ");
   }
 
+  function copyIdCell(id) {
+    // 17+ digit IDs only survive in the sheet as plain text; a number cell
+    // rounds them (e.g. 1.23E+17 or trailing zeros), so don't offer those.
+    if (!/^\d{15,25}$/.test(id)) {
+      return { html: '<button class="btn-secondary copy-btn" disabled>No Discord ID</button>' };
+    }
+    return { html: '<button class="btn-secondary copy-btn" data-copy="' + escapeHTML(id) + '">Copy Discord ID</button>' };
+  }
+
+  async function copyText(text) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      // Fallback for browsers/contexts without the async clipboard API.
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      const ok = document.execCommand("copy");
+      ta.remove();
+      return ok;
+    }
+  }
+
   function initAuditTab() {
+    document.getElementById("tab-audit").addEventListener("click", async (e) => {
+      const btn = e.target.closest(".copy-btn[data-copy]");
+      if (!btn) return;
+      const ok = await copyText(btn.dataset.copy);
+      btn.textContent = ok ? "Copied!" : "Copy failed";
+      clearTimeout(btn._reset);
+      btn._reset = setTimeout(() => (btn.textContent = "Copy Discord ID"), 1500);
+    });
+
     const dateInput = document.getElementById("audit-date");
     const nameInput = document.getElementById("audit-name");
     const clearBtn = document.getElementById("audit-clear");
@@ -892,8 +930,8 @@
       ? "Filtered by " + parts.join(" and ") + "."
       : "Showing all dates and players.";
 
-    fillSignupTable(tables[0], awaitingScreens, (r) => [fmtDate(r.date || "—"), r.ingame_name, r.status]);
-    fillSignupTable(tables[1], resend, (r) => [fmtDate(r.date || "—"), r.ingame_name, r.status]);
+    fillSignupTable(tables[0], awaitingScreens, (r) => [fmtDate(r.date || "—"), r.ingame_name, r.status, copyIdCell(r.discord_id)]);
+    fillSignupTable(tables[1], resend, (r) => [fmtDate(r.date || "—"), r.ingame_name, r.status, copyIdCell(r.discord_id)]);
     fillSignupTable(tables[2], accepted, (r) => [fmtDate(r.date || "—"), r.event || "—", r.ingame_name, r.status]);
   }
 
@@ -1185,6 +1223,7 @@
           event: r.event || "",
           ingame_name: r.ingame_name || "",
           status: (r.status || "").trim(),
+          discord_id: (r.discord_id || "").trim(),
         });
         const cols = ["event_date", "event", "ingame_name", "status"];
         const [auctionRaw, pendingRaw] = await Promise.all([
