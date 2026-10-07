@@ -897,6 +897,8 @@
     const query = document.getElementById("audit-name").value.trim().toLowerCase();
 
     const tables = ["#audit-pending-table tbody", "#audit-resend-table tbody", "#audit-accepted-table tbody"];
+    const stats = document.getElementById("audit-stats");
+    stats.innerHTML = "";
     if (state.auditsError) {
       document.getElementById("audit-summary").textContent = state.auditsError;
       tables.forEach((sel) => fillSignupTable(sel, [], () => []));
@@ -929,6 +931,11 @@
     document.getElementById("audit-summary").textContent = parts.length
       ? "Filtered by " + parts.join(" and ") + "."
       : "Showing all dates and players.";
+
+    addStatCard(stats, "Total Members", fmtNum(awaitingScreens.length + resend.length + accepted.length));
+    addStatCard(stats, "Screenshots Received", fmtNum(resend.length + accepted.length));
+    addStatCard(stats, "Screenshots Refused", fmtNum(resend.length));
+    addStatCard(stats, "Screenshots Pending", fmtNum(awaitingScreens.length));
 
     fillSignupTable(tables[0], awaitingScreens, (r) => [fmtDate(r.date || "—"), r.ingame_name, r.status, copyIdCell(r.discord_id)]);
     fillSignupTable(tables[1], resend, (r) => [fmtDate(r.date || "—"), r.ingame_name, r.status, copyIdCell(r.discord_id)]);
