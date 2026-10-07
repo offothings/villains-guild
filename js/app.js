@@ -10,6 +10,9 @@
     signups: [], // { date, event, field, ingame_name }
     absences: [], // { dateBegin, dateEnd, ingame_name, class, comments } (ISO dates)
     absencesError: "",
+    auctionAudits: [], // { date, event, ingame_name, status } (ISO date)
+    pendingAudits: [], // { date, event, ingame_name, status } (ISO date)
+    auditsError: "",
   };
 
   // Guild data lives in a Google Sheet (one spreadsheet, one tab per file).
@@ -21,6 +24,9 @@
   const SIGNUP_GID = "311091534";
   // Looked up by sheet name (gviz endpoint) rather than gid.
   const ABSENCE_SHEET_NAME = "absence_reports";
+  const AUCTION_AUDITS_SHEET_NAME = "auction_audits";
+  // Referred to by both names; whichever tab exists is used.
+  const PENDING_AUDITS_SHEET_NAMES = ["audits_pending", "pending_audits"];
 
   // Event names must match the sheet's "event" column exactly.
   const EVENT_STELLAR_CLASH = "Guild League Stellar Clash";
@@ -331,19 +337,11 @@
 
   // ---------- Player tab ----------
 
-  function initPlayerTab() {
-    const nameInput = document.getElementById("player-name");
-    const dropdown = document.getElementById("player-name-dropdown");
-    const startInput = document.getElementById("player-start");
-    const endInput = document.getElementById("player-end");
-    const clearBtn = document.getElementById("player-clear");
-
-    const names = Array.from(new Set(state.attendance.map((r) => r.ingame_name))).sort((a, b) =>
-      a.localeCompare(b)
-    );
-
+  // Single-click searchable name picker. `onChange` runs whenever the
+  // input's value changes (typing or picking from the list).
+  function attachNameCombo(input, dropdown, combo, names, onChange) {
     function renderDropdown() {
-      const q = nameInput.value.trim().toLowerCase();
+      const q = input.value.trim().toLowerCase();
       const matches = q ? names.filter((n) => n.toLowerCase().includes(q)) : names;
       dropdown.innerHTML = matches.length
         ? matches
@@ -362,12 +360,12 @@
       dropdown.classList.remove("open");
     }
 
-    nameInput.addEventListener("click", openDropdown);
-    nameInput.addEventListener("input", () => {
+    input.addEventListener("click", openDropdown);
+    input.addEventListener("input", () => {
       openDropdown();
-      renderPlayer();
+      onChange();
     });
-    nameInput.addEventListener("keydown", (e) => {
+    input.addEventListener("keydown", (e) => {
       if (e.key === "Escape") closeDropdown();
     });
 
@@ -377,14 +375,35 @@
       e.stopPropagation();
       const li = e.target.closest("li[data-name]");
       if (!li) return;
-      nameInput.value = li.dataset.name;
+      input.value = li.dataset.name;
       closeDropdown();
-      renderPlayer();
+      onChange();
     });
 
     document.addEventListener("click", (e) => {
-      if (!e.target.closest("#player-name-combo")) closeDropdown();
+      if (!combo.contains(e.target)) closeDropdown();
     });
+
+    return { close: closeDropdown };
+  }
+
+  function sortedUniqueNames(names) {
+    return Array.from(new Set(names.filter(Boolean))).sort((a, b) => a.localeCompare(b));
+  }
+
+  function initPlayerTab() {
+    const nameInput = document.getElementById("player-name");
+    const startInput = document.getElementById("player-start");
+    const endInput = document.getElementById("player-end");
+    const clearBtn = document.getElementById("player-clear");
+
+    const combo = attachNameCombo(
+      nameInput,
+      document.getElementById("player-name-dropdown"),
+      document.getElementById("player-name-combo"),
+      sortedUniqueNames(state.attendance.map((r) => r.ingame_name)),
+      renderPlayer
+    );
 
     const dates = state.attendance.map((r) => r.date);
     if (dates.length) {
@@ -398,7 +417,7 @@
       nameInput.value = "";
       startInput.value = "";
       endInput.value = "";
-      closeDropdown();
+      combo.close();
       renderPlayer();
     });
 
@@ -710,11 +729,29 @@
 
   // ---------- Absence Report tab ----------
 
-  function absenceSheetUrl() {
+  function sheetByNameUrl(sheetName) {
     return (
       "https://docs.google.com/spreadsheets/d/" + SPREADSHEET_ID +
-      "/gviz/tq?tqx=out:csv&sheet=" + encodeURIComponent(ABSENCE_SHEET_NAME)
+      "/gviz/tq?tqx=out:csv&sheet=" + encodeURIComponent(sheetName)
     );
+  }
+
+  // Loads the first of `sheetNames` that exists and has every column in
+  // `requiredCols`. Checking columns matters because the by-name endpoint
+  // can fall back to a different tab when a name doesn't match.
+  async function loadNamedSheet(sheetNames, requiredCols) {
+    let lastErr = null;
+    for (const name of sheetNames) {
+      try {
+        const rows = await loadCSV(sheetByNameUrl(name));
+        const missing = rows.length ? requiredCols.filter((c) => !(c in rows[0])) : [];
+        if (missing.length) throw new Error('"' + name + '" is missing column(s): ' + missing.join(", "));
+        return rows;
+      } catch (err) {
+        lastErr = err;
+      }
+    }
+    throw lastErr;
   }
 
   // Accepts YYYY-MM-DD or M/D/YYYY (how Sheets may render a date cell);
@@ -785,6 +822,80 @@
       withWeekday(a.dateEnd),
       a.comments || "—",
     ]);
+  }
+
+  // ---------- Auction Audit Tracker tab ----------
+
+  // Lenient so "Screenshots pending", "screenshots_pending" and " OK " all match.
+  function normStatus(s) {
+    return String(s || "").trim().toLowerCase().replace(/_/g, " ");
+  }
+
+  function initAuditTab() {
+    const dateInput = document.getElementById("audit-date");
+    const nameInput = document.getElementById("audit-name");
+    const clearBtn = document.getElementById("audit-clear");
+
+    const combo = attachNameCombo(
+      nameInput,
+      document.getElementById("audit-name-dropdown"),
+      document.getElementById("audit-name-combo"),
+      sortedUniqueNames(state.auctionAudits.concat(state.pendingAudits).map((r) => r.ingame_name)),
+      renderAudits
+    );
+
+    dateInput.addEventListener("change", renderAudits);
+    clearBtn.addEventListener("click", () => {
+      dateInput.value = "";
+      nameInput.value = "";
+      combo.close();
+      renderAudits();
+    });
+
+    renderAudits();
+  }
+
+  function renderAudits() {
+    const date = document.getElementById("audit-date").value;
+    const query = document.getElementById("audit-name").value.trim().toLowerCase();
+
+    const tables = ["#audit-pending-table tbody", "#audit-resend-table tbody", "#audit-accepted-table tbody"];
+    if (state.auditsError) {
+      document.getElementById("audit-summary").textContent = state.auditsError;
+      tables.forEach((sel) => fillSignupTable(sel, [], () => []));
+      return;
+    }
+
+    // A name picked from the list (or typed in full) matches only that
+    // player; a partial name matches anyone containing it.
+    const allNames = state.auctionAudits.concat(state.pendingAudits).map((r) => r.ingame_name.toLowerCase());
+    const exact = allNames.includes(query);
+    const matches = (r) =>
+      (!date || r.date === date) &&
+      (!query || (exact ? r.ingame_name.toLowerCase() === query : r.ingame_name.toLowerCase().includes(query)));
+    const byDateThenName = (a, b) => b.date.localeCompare(a.date) || a.ingame_name.localeCompare(b.ingame_name);
+
+    const pending = state.pendingAudits.filter(matches).sort(byDateThenName);
+    const awaitingScreens = pending.filter((r) => normStatus(r.status) === "screenshots pending");
+    const resend = pending.filter((r) => {
+      const st = normStatus(r.status);
+      return st && st !== "screenshots pending" && st !== "ok";
+    });
+    const accepted = state.auctionAudits
+      .filter((r) => normStatus(r.status) === "ok")
+      .filter(matches)
+      .sort(byDateThenName);
+
+    const parts = [];
+    if (date) parts.push("event date " + date);
+    if (query) parts.push('player "' + document.getElementById("audit-name").value.trim() + '"');
+    document.getElementById("audit-summary").textContent = parts.length
+      ? "Filtered by " + parts.join(" and ") + "."
+      : "Showing all dates and players.";
+
+    fillSignupTable(tables[0], awaitingScreens, (r) => [fmtDate(r.date || "—"), r.ingame_name, r.status]);
+    fillSignupTable(tables[1], resend, (r) => [fmtDate(r.date || "—"), r.ingame_name, r.status]);
+    fillSignupTable(tables[2], accepted, (r) => [fmtDate(r.date || "—"), r.event || "—", r.ingame_name, r.status]);
   }
 
   // ---------- The Snitch tab ----------
@@ -1055,10 +1166,7 @@
       // Loaded separately so a problem with this sheet can't break the
       // other tabs.
       try {
-        const absenceRaw = await loadCSV(absenceSheetUrl());
-        if (absenceRaw.length && !("date_begin" in absenceRaw[0])) {
-          throw new Error('missing "date_begin" column');
-        }
+        const absenceRaw = await loadNamedSheet([ABSENCE_SHEET_NAME], ["date_begin", "date_end", "ingame_name"]);
         state.absences = absenceRaw.map((r) => ({
           dateBegin: toISODate(r.date_begin),
           dateEnd: toISODate(r.date_end),
@@ -1071,6 +1179,26 @@
         state.absencesError = "Couldn't load the absence_reports sheet (" + err.message + ").";
       }
       initAbsenceTab();
+
+      try {
+        const toAudit = (r) => ({
+          date: toISODate(r.event_date),
+          event: r.event || "",
+          ingame_name: r.ingame_name || "",
+          status: (r.status || "").trim(),
+        });
+        const cols = ["event_date", "event", "ingame_name", "status"];
+        const [auctionRaw, pendingRaw] = await Promise.all([
+          loadNamedSheet([AUCTION_AUDITS_SHEET_NAME], cols),
+          loadNamedSheet(PENDING_AUDITS_SHEET_NAMES, cols),
+        ]);
+        state.auctionAudits = auctionRaw.map(toAudit).filter((r) => r.ingame_name);
+        state.pendingAudits = pendingRaw.map(toAudit).filter((r) => r.ingame_name);
+      } catch (err) {
+        console.error(err);
+        state.auditsError = "Couldn't load the auction audit sheets (" + err.message + ").";
+      }
+      initAuditTab();
     } catch (err) {
       console.error(err);
       showError(

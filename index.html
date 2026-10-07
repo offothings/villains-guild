@@ -20,6 +20,7 @@
       <button class="tab-btn" data-tab="tab-signup" hidden>Signup Audit</button>
       <button class="tab-btn" data-tab="tab-snitch" hidden>The Snitch</button>
       <button class="tab-btn" data-tab="tab-absence">Absence Report</button>
+      <button class="tab-btn" data-tab="tab-audit">Auction Audit Tracker</button>
     </nav>
   </header>
 
@@ -242,6 +243,68 @@
               <th>Absent from</th>
               <th>Absent until</th>
               <th>Comments</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Auction Audit Tracker Tab -->
+    <section id="tab-audit" class="tab-panel">
+      <div class="filters">
+        <label>Event date
+          <input type="date" id="audit-date" />
+        </label>
+        <div class="filter-field">
+          <label for="audit-name">Player</label>
+          <div class="combo" id="audit-name-combo">
+            <input type="text" id="audit-name" placeholder="Search a player..." autocomplete="off" />
+            <ul id="audit-name-dropdown" class="combo-dropdown"></ul>
+          </div>
+        </div>
+        <button id="audit-clear" class="btn-secondary">Clear</button>
+      </div>
+
+      <p id="audit-summary" class="hint"></p>
+
+      <h2>Players Pending Screenshots</h2>
+      <div class="table-wrap">
+        <table id="audit-pending-table">
+          <thead>
+            <tr>
+              <th>Event date</th>
+              <th>In-game name</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <h2>Players Required to Re-send Screenshots</h2>
+      <div class="table-wrap">
+        <table id="audit-resend-table">
+          <thead>
+            <tr>
+              <th>Event date</th>
+              <th>In-game name</th>
+              <th>Reason</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <h2>Audits Accepted</h2>
+      <div class="table-wrap">
+        <table id="audit-accepted-table">
+          <thead>
+            <tr>
+              <th>Event date</th>
+              <th>Event name</th>
+              <th>In-game name</th>
+              <th>Status</th>
             </tr>
           </thead>
           <tbody></tbody>

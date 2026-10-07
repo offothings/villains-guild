@@ -46,6 +46,13 @@ tabs of a Google Sheet. Built to run on GitHub Pages.
    absence overlaps that date's week (Monday–Sunday) at all, i.e.
    `date_begin` <= Sunday and `date_end` >= Monday. Defaults to the
    current week.
+7. **Auction Audit Tracker** — filter by exact event date and/or player
+   (single-click searchable picker; a full name matches only that player,
+   a partial name matches anyone containing it). Three tables: players
+   with status "Screenshots pending", players who must re-send (any other
+   non-blank status except "OK", shown as the reason), and accepted audits
+   (status "OK" on `auction_audits`). Status matching ignores case,
+   surrounding spaces, and `_` vs space.
 
 ## Data source
 
@@ -101,6 +108,18 @@ local copy of the data in this repo.
   ```
   Dates may be `YYYY-MM-DD` or `M/D/YYYY`. If this tab fails to load, only
   the Absence Report tab is affected.
+
+- **auction_audits** tab — read by sheet name:
+  ```
+  event_date, event, discord_name, status, ingame_name
+  ```
+- **audits_pending** tab (also accepted as **pending_audits**) — read by
+  sheet name:
+  ```
+  ingame_name, event_date, event, status
+  ```
+  Both audit tabs load independently of the rest; if either fails, only
+  the Auction Audit Tracker shows an error.
 
 All three tabs must keep their header row and column order. Values are
 matched case-sensitively on `ingame_name`, so keep spelling/casing
