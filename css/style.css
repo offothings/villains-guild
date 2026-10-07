@@ -421,3 +421,22 @@ tbody tr:hover {
   color: var(--text-dim);
   border-color: var(--border);
 }
+
+#audit-pending-table th:nth-child(2), #audit-pending-table td:nth-child(2),
+#audit-pending-table th:nth-child(3), #audit-pending-table td:nth-child(3),
+#audit-resend-table th:nth-child(2), #audit-resend-table td:nth-child(2),
+#audit-resend-table th:nth-child(3), #audit-resend-table td:nth-child(3),
+#audit-accepted-table th:nth-child(3), #audit-accepted-table td:nth-child(3),
+#audit-accepted-table th:nth-child(4), #audit-accepted-table td:nth-child(4) {
+  text-align: left;
+}
+
+#audit-pending-table th:nth-child(1), #audit-resend-table th:nth-child(1), #audit-accepted-table th:nth-child(1),
+#audit-pending-table th:nth-child(2), #audit-resend-table th:nth-child(2), #audit-accepted-table th:nth-child(2),
+#audit-pending-table th:nth-child(4), #audit-resend-table th:nth-child(4), #audit-accepted-table th:nth-child(4) {
+  width: 20%;
+}
+
+#audit-pending-table th:nth-child(3), #audit-resend-table th:nth-child(3), #audit-accepted-table th:nth-child(3) {
+  width: 40%;
+}
