@@ -841,9 +841,20 @@
     return { html: '<button class="btn-secondary copy-btn" data-copy="' + escapeHTML(id) + '">Copy Discord ID</button>' };
   }
 
-  async function copyText(text) {
+  // Copies `text`; when `html` is given and the browser supports it, also
+  // offers an HTML version (preferred by Google Sheets when pasting).
+  async function copyText(text, html) {
     try {
-      await navigator.clipboard.writeText(text);
+      if (html && window.ClipboardItem && navigator.clipboard.write) {
+        await navigator.clipboard.write([
+          new ClipboardItem({
+            "text/plain": new Blob([text], { type: "text/plain" }),
+            "text/html": new Blob([html], { type: "text/html" }),
+          }),
+        ]);
+      } else {
+        await navigator.clipboard.writeText(text);
+      }
       return true;
     } catch {
       // Fallback for browsers/contexts without the async clipboard API.
@@ -859,14 +870,54 @@
     }
   }
 
+  // Rows behind each audit table as last rendered, keyed by table id. A cell
+  // is a plain value, or { text } to force Sheets to keep it as text.
+  const auditCopyRows = {};
+
+  // Tab-separated text plus an HTML table, so a paste into Google Sheets
+  // fills one cell per value. In the HTML, { text } cells carry Sheets' own
+  // "this is a string" marker so long Discord IDs aren't rounded.
+  function tableClipboard(headers, rows) {
+    const plain = (c) => String(c && typeof c === "object" ? c.text : c).replace(/[\t\r\n]+/g, " ");
+    const tsv = [headers].concat(rows).map((r) => r.map(plain).join("\t")).join("\n");
+    const td = (c) => {
+      if (c && typeof c === "object") {
+        const marker = escapeHTML(JSON.stringify({ 1: 2, 2: c.text }));
+        return '<td data-sheets-value="' + marker + '">' + escapeHTML(c.text) + "</td>";
+      }
+      return "<td>" + escapeHTML(c) + "</td>";
+    };
+    const html =
+      "<table><thead><tr>" +
+      headers.map((h) => "<th>" + escapeHTML(h) + "</th>").join("") +
+      "</tr></thead><tbody>" +
+      rows.map((r) => "<tr>" + r.map(td).join("") + "</tr>").join("") +
+      "</tbody></table>";
+    return { tsv, html };
+  }
+
+  function flashButton(btn, message, label) {
+    btn.textContent = message;
+    clearTimeout(btn._reset);
+    btn._reset = setTimeout(() => (btn.textContent = label), 1500);
+  }
+
   function initAuditTab() {
     document.getElementById("tab-audit").addEventListener("click", async (e) => {
-      const btn = e.target.closest(".copy-btn[data-copy]");
-      if (!btn) return;
-      const ok = await copyText(btn.dataset.copy);
-      btn.textContent = ok ? "Copied!" : "Copy failed";
-      clearTimeout(btn._reset);
-      btn._reset = setTimeout(() => (btn.textContent = "Copy Discord ID"), 1500);
+      const idBtn = e.target.closest(".copy-btn[data-copy]");
+      if (idBtn) {
+        const ok = await copyText(idBtn.dataset.copy);
+        flashButton(idBtn, ok ? "Copied!" : "Copy failed", "Copy Discord ID");
+        return;
+      }
+      const tableBtn = e.target.closest(".copy-table-btn");
+      if (tableBtn) {
+        const id = tableBtn.dataset.table;
+        const headers = Array.from(document.querySelectorAll("#" + id + " thead th")).map((th) => th.textContent.trim());
+        const { tsv, html } = tableClipboard(headers, auditCopyRows[id] || []);
+        const ok = await copyText(tsv, html);
+        flashButton(tableBtn, ok ? "Copied!" : "Copy failed", "Copy table data");
+      }
     });
 
     const dateInput = document.getElementById("audit-date");
@@ -900,6 +951,7 @@
     const stats = document.getElementById("audit-stats");
     stats.innerHTML = "";
     if (state.auditsError) {
+      for (const k in auditCopyRows) delete auditCopyRows[k];
       document.getElementById("audit-summary").textContent = state.auditsError;
       tables.forEach((sel) => fillSignupTable(sel, [], () => []));
       return;
@@ -936,6 +988,13 @@
     addStatCard(stats, "Screenshots Received", fmtNum(resend.length + accepted.length));
     addStatCard(stats, "Screenshots Refused", fmtNum(resend.length));
     addStatCard(stats, "Screenshots Pending", fmtNum(awaitingScreens.length));
+
+    // Same ID check as the copy buttons: a rounded or blank ID is left empty
+    // rather than pasted as a wrong number.
+    const idForCopy = (id) => ({ text: /^\d{15,25}$/.test(id) ? id : "" });
+    auditCopyRows["audit-pending-table"] = awaitingScreens.map((r) => [r.date, r.ingame_name, r.status, idForCopy(r.discord_id)]);
+    auditCopyRows["audit-resend-table"] = resend.map((r) => [r.date, r.ingame_name, r.status, idForCopy(r.discord_id)]);
+    auditCopyRows["audit-accepted-table"] = accepted.map((r) => [r.date, r.event, r.ingame_name, r.status]);
 
     fillSignupTable(tables[0], awaitingScreens, (r) => [fmtDate(r.date || "—"), r.ingame_name, r.status, copyIdCell(r.discord_id)]);
     fillSignupTable(tables[1], resend, (r) => [fmtDate(r.date || "—"), r.ingame_name, r.status, copyIdCell(r.discord_id)]);
