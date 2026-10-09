@@ -973,7 +973,10 @@
       return st && st !== "screenshots pending" && st !== "ok";
     });
     const accepted = state.auctionAudits
-      .filter((r) => normStatus(r.status) === "ok")
+      .filter((r) => {
+        const st = normStatus(r.status);
+        return st.startsWith("ok") || st.startsWith("accepted");
+      })
       .filter(matches)
       .sort(byDateThenName);
 
