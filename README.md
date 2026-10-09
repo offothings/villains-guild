@@ -50,7 +50,8 @@ tabs of a Google Sheet. Built to run on GitHub Pages.
    (single-click searchable picker; a full name matches only that player,
    a partial name matches anyone containing it). Three tables: players
    with status "Screenshots pending", players who must re-send (any other
-   non-blank status except "OK", shown as the reason), and accepted audits
+   non-blank status that doesn't start with "OK" or "Accepted", shown as
+   the reason), and accepted audits
    (status starting with "OK" or "Accepted" on `auction_audits`). Status matching ignores case,
    surrounding spaces, and `_` vs space.
 

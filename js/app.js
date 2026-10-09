@@ -902,6 +902,11 @@
     btn._reset = setTimeout(() => (btn.textContent = label), 1500);
   }
 
+  function isAcceptedStatus(status) {
+    const st = normStatus(status);
+    return st.startsWith("ok") || st.startsWith("accepted");
+  }
+
   function initAuditTab() {
     document.getElementById("tab-audit").addEventListener("click", async (e) => {
       const idBtn = e.target.closest(".copy-btn[data-copy]");
@@ -970,13 +975,10 @@
     const awaitingScreens = pending.filter((r) => normStatus(r.status) === "screenshots pending");
     const resend = pending.filter((r) => {
       const st = normStatus(r.status);
-      return st && st !== "screenshots pending" && st !== "ok";
+      return st && st !== "screenshots pending" && !isAcceptedStatus(st);
     });
     const accepted = state.auctionAudits
-      .filter((r) => {
-        const st = normStatus(r.status);
-        return st.startsWith("ok") || st.startsWith("accepted");
-      })
+      .filter((r) => isAcceptedStatus(r.status))
       .filter(matches)
       .sort(byDateThenName);
 
